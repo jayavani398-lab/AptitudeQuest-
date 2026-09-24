@@ -1,0 +1,1396 @@
+/* =========================================================
+   APTITUDEQUEST
+   COMPLETE GAME CSS
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+    color: #ffffff;
+    background:
+        radial-gradient(circle at top left, #302b63, transparent 40%),
+        radial-gradient(circle at bottom right, #24243e, transparent 45%),
+        linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    overflow-x: hidden;
+}
+
+
+/* ================= BACKGROUND ================= */
+
+.background-symbols {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.background-symbols span {
+    position: absolute;
+    font-size: 40px;
+    opacity: 0.08;
+    animation: floatSymbol 12s linear infinite;
+}
+
+.background-symbols span:nth-child(1) {
+    left: 10%;
+    top: 20%;
+}
+
+.background-symbols span:nth-child(2) {
+    left: 25%;
+    top: 70%;
+}
+
+.background-symbols span:nth-child(3) {
+    left: 45%;
+    top: 15%;
+}
+
+.background-symbols span:nth-child(4) {
+    left: 70%;
+    top: 25%;
+}
+
+.background-symbols span:nth-child(5) {
+    left: 85%;
+    top: 70%;
+}
+
+.background-symbols span:nth-child(6) {
+    left: 60%;
+    top: 80%;
+}
+
+.background-symbols span:nth-child(7) {
+    left: 15%;
+    top: 90%;
+}
+
+.background-symbols span:nth-child(8) {
+    left: 90%;
+    top: 10%;
+}
+
+@keyframes floatSymbol {
+    0% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-30px) rotate(180deg);
+    }
+
+    100% {
+        transform: translateY(0) rotate(360deg);
+    }
+}
+
+
+/* ================= SCREEN ================= */
+
+.screen {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+    z-index: 2;
+}
+
+.screen.active {
+    display: block;
+}
+
+
+/* ================= HOME ================= */
+
+.home-container {
+    width: 100%;
+    max-width: 550px;
+    margin: auto;
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.logo-circle {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    font-size: 50px;
+
+    background: rgba(255, 255, 255, 0.12);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+
+    box-shadow: 0 0 40px rgba(138, 43, 226, 0.5);
+}
+
+.game-title {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.game-title span {
+    color: #ffd166;
+}
+
+.game-subtitle {
+    color: #d9d9e8;
+    margin-bottom: 30px;
+    line-height: 1.5;
+}
+
+.home-card {
+    padding: 30px;
+    border-radius: 25px;
+
+    background: rgba(255, 255, 255, 0.09);
+    backdrop-filter: blur(15px);
+
+    border: 1px solid rgba(255, 255, 255, 0.15);
+
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.home-card label {
+    display: block;
+    text-align: left;
+    margin: 15px 0 8px;
+    font-weight: bold;
+}
+
+.home-card input {
+    width: 100%;
+    padding: 15px;
+
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+
+    background: rgba(0,0,0,0.25);
+    color: white;
+
+    outline: none;
+    font-size: 16px;
+}
+
+.home-card input:focus {
+    border-color: #ffd166;
+    box-shadow: 0 0 15px rgba(255,209,102,0.2);
+}
+
+.home-card input::placeholder {
+    color: #aaa;
+}
+
+.age-message {
+    min-height: 22px;
+    margin-top: 8px;
+    color: #ffd166;
+    font-size: 14px;
+}
+
+.player-preview {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    margin: 20px 0;
+    padding: 15px;
+
+    border-radius: 15px;
+    background: rgba(255,255,255,0.06);
+
+    text-align: left;
+}
+
+.avatar {
+    width: 50px;
+    height: 50px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    font-size: 25px;
+}
+
+.player-preview strong,
+.player-preview span {
+    display: block;
+}
+
+.player-preview span {
+    color: #aaa;
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+
+/* ================= BUTTONS ================= */
+
+.main-button,
+.secondary-button,
+.back-button,
+.exit-button,
+.voice-button,
+.next-button {
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+.main-button {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+
+    padding: 16px;
+    margin-top: 10px;
+
+    font-size: 17px;
+    font-weight: bold;
+
+    color: #17152e;
+    background: #ffd166;
+}
+
+.main-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(255,209,102,0.25);
+}
+
+.secondary-button {
+    width: 100%;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 14px;
+
+    padding: 14px;
+    margin-top: 12px;
+
+    color: white;
+    background: rgba(255,255,255,0.08);
+
+    font-size: 16px;
+}
+
+.secondary-button:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+
+/* ================= PAGE ================= */
+
+.page-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: auto;
+    padding: 30px 20px 60px;
+}
+
+.top-bar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+
+    margin-bottom: 30px;
+}
+
+.top-title {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.back-button {
+    justify-self: start;
+
+    padding: 10px 16px;
+
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+
+    background: rgba(255,255,255,0.08);
+    color: white;
+}
+
+.back-button:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+.player-info {
+    padding: 12px 18px;
+    margin-bottom: 25px;
+
+    border-radius: 12px;
+    background: rgba(255,255,255,0.07);
+
+    color: #ddd;
+}
+
+
+/* ================= TOPICS ================= */
+
+.section-heading {
+    text-align: center;
+    font-size: 32px;
+    margin-top: 15px;
+}
+
+.section-description {
+    text-align: center;
+    color: #bbb;
+    margin: 10px auto 30px;
+}
+
+.topic-grid {
+    position: relative;
+
+    display: flex !important;
+    flex-direction: column;
+
+    gap: 55px;
+
+    max-width: 780px;
+    margin: 0 auto;
+
+    padding: 10px 0;
+}
+
+.topic-grid::before {
+    content: "";
+
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 50%;
+
+    border-left: 4px dashed rgba(255,209,102,0.3);
+
+    transform: translateX(-50%);
+
+    z-index: 0;
+}
+
+.topic-card {
+    position: relative;
+
+    z-index: 1;
+
+    width: 58%;
+
+    border: 1px solid rgba(255,255,255,0.15);
+    border-top: 3px solid var(--accent, #ffd166);
+    border-radius: 20px;
+
+    padding: 30px 25px 25px;
+
+    background: rgba(255,255,255,0.06);
+
+    cursor: pointer;
+    transition: 0.3s;
+
+    text-align: left;
+}
+
+.topic-card:nth-child(odd) {
+    align-self: flex-start;
+}
+
+.topic-card:nth-child(even) {
+    align-self: flex-end;
+}
+
+.topic-card::after {
+    content: "";
+
+    position: absolute;
+    top: 38px;
+
+    width: 14px;
+    height: 14px;
+
+    border-radius: 50%;
+
+    background: var(--accent, #ffd166);
+
+    box-shadow: 0 0 10px 2px var(--accent, #ffd166);
+}
+
+.topic-card:nth-child(odd)::after {
+    right: -32px;
+}
+
+.topic-card:nth-child(even)::after {
+    left: -32px;
+}
+
+.topic-card::before {
+    content: "";
+
+    position: absolute;
+    top: -60%;
+    left: -20%;
+    width: 140%;
+    height: 140%;
+
+    background: radial-gradient(circle, var(--accent, #ffd166) 0%, transparent 60%);
+
+    opacity: 0;
+
+    transition: opacity 0.4s;
+
+    pointer-events: none;
+    z-index: 0;
+}
+
+.topic-card:hover {
+    transform: translateY(-7px);
+    background: rgba(255,255,255,0.1);
+    border-top-color: var(--accent, #ffd166);
+    box-shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+}
+
+.topic-card:hover::before {
+    opacity: 0.12;
+}
+
+.topic-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.gate-arch {
+    position: relative;
+
+    width: 64px;
+    height: 64px;
+    margin-bottom: 18px;
+
+    border-radius: 50% 50% 12px 12px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        linear-gradient(160deg, color-mix(in srgb, var(--accent) 35%, #17152e), #17152e 75%);
+
+    border: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.gate-glow {
+    position: absolute;
+    inset: -6px;
+
+    border-radius: 50% 50% 14px 14px;
+
+    box-shadow: 0 0 18px 2px color-mix(in srgb, var(--accent) 50%, transparent);
+
+    opacity: 0.55;
+
+    transition: opacity 0.3s;
+}
+
+.topic-card:hover .gate-glow {
+    opacity: 1;
+}
+
+.gate-icon {
+    width: 34px;
+    height: 34px;
+}
+
+.gate-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.topic-progress-track {
+    margin-top: 16px;
+
+    width: 100%;
+    height: 6px;
+
+    border-radius: 10px;
+
+    background: rgba(255,255,255,0.1);
+
+    overflow: hidden;
+}
+
+.topic-progress-fill {
+    height: 100%;
+
+    background: var(--accent, #ffd166);
+
+    border-radius: 10px;
+
+    transition: width 0.4s;
+}
+
+.topic-meta {
+    display: flex;
+    justify-content: space-between;
+
+    margin-top: 10px;
+
+    color: var(--accent, #ffd166);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.topic-card h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.topic-card p {
+    color: #aaa;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+
+/* ================= LEVEL MAP ================= */
+
+.map-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.map-header h2 {
+    font-size: 34px;
+    color: #ffd166;
+}
+
+.map-topic-icon {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.map-topic-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.map-header p {
+    color: #bbb;
+    margin-top: 8px;
+}
+
+
+/*
+    IMPORTANT:
+    level-path is explicitly visible
+    and above the road.
+*/
+
+.adventure-map {
+    position: relative;
+    min-height: 700px;
+
+    padding: 70px 30px 100px;
+
+    overflow: visible;
+
+    border-radius: 30px;
+
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.07), transparent 20%),
+        linear-gradient(160deg, rgba(42, 35, 90, 0.95), rgba(13, 31, 55, 0.95));
+
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+.map-road {
+    display: none;
+}
+
+.level-path {
+    position: relative;
+
+    z-index: 10;
+
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 60px;
+    padding: 10px 0;
+
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.level-path::before {
+    content: "";
+
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 50%;
+
+    border-left: 4px dashed rgba(255,209,102,0.3);
+
+    transform: translateX(-50%);
+
+    z-index: 1;
+}
+
+.level-node:nth-child(odd) {
+    margin-right: 150px;
+}
+
+.level-node:nth-child(even) {
+    margin-left: 150px;
+}
+
+.level-node {
+    position: relative;
+
+    z-index: 20;
+
+    width: 100px;
+    height: 78px;
+
+    border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    border: 3px solid rgba(255,255,255,0.25);
+    border-bottom: 3px solid rgba(0,0,0,0.35);
+
+    background: linear-gradient(160deg, #4a4287, #221c4a 70%);
+
+    color: white;
+
+    font-size: 22px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 18px 20px -10px rgba(0,0,0,0.5),
+        inset 0 -8px 12px rgba(0,0,0,0.25);
+
+    transition: 0.3s;
+
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.level-node::after {
+    content: "";
+
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: -10px;
+
+    height: 14px;
+
+    border-radius: 50%;
+
+    background: rgba(0,0,0,0.35);
+
+    filter: blur(4px);
+
+    z-index: -1;
+}
+
+.level-node span {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: normal;
+    color: #ccc;
+}
+
+.level-node:hover {
+    transform: translateY(-6px) scale(1.06);
+    border-color: #ffd166;
+}
+
+.level-node.current {
+    border-color: #ffd166;
+
+    background: linear-gradient(160deg, #a9761a, #4a3300 70%);
+
+    box-shadow:
+        0 0 25px rgba(255,209,102,0.55),
+        inset 0 -8px 12px rgba(0,0,0,0.25);
+}
+
+.level-node.current::before {
+    content: "⭐";
+
+    position: absolute;
+    top: -22px;
+
+    font-size: 18px;
+
+    animation: bounceStar 1.4s ease-in-out infinite;
+}
+
+@keyframes bounceStar {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.level-node.completed {
+    border-color: #62e6a6;
+
+    background: linear-gradient(160deg, #1f7a5c, #0c2f26 70%);
+}
+
+.level-node.locked {
+    cursor: not-allowed;
+
+    filter: grayscale(0.7);
+
+    background: rgba(255,255,255,0.05);
+
+    border-color: rgba(255,255,255,0.1);
+
+    color: #777;
+}
+
+.level-node.locked span {
+    color: #777;
+}
+
+.moon {
+    position: absolute;
+    right: 40px;
+    top: 25px;
+
+    font-size: 50px;
+
+    z-index: 2;
+}
+
+.cloud {
+    position: absolute;
+    font-size: 45px;
+    opacity: 0.3;
+}
+
+.cloud-one {
+    left: 8%;
+    top: 30px;
+}
+
+.cloud-two {
+    right: 18%;
+    top: 110px;
+}
+
+.start-camp,
+.finish-castle {
+    position: absolute;
+
+    z-index: 25;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    font-size: 35px;
+}
+
+.start-camp {
+    left: 20px;
+    bottom: 25px;
+}
+
+.finish-castle {
+    right: 20px;
+    bottom: 25px;
+}
+
+.start-camp span,
+.finish-castle span {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 5px;
+}
+
+
+/* ================= QUIZ ================= */
+
+.quiz-container {
+    width: 100%;
+    max-width: 850px;
+    margin: auto;
+    padding: 25px 20px 50px;
+}
+
+.quiz-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    margin-bottom: 15px;
+}
+
+.exit-button {
+    padding: 10px 15px;
+
+    border-radius: 10px;
+
+    background: rgba(255,80,80,0.1);
+    color: #ff9d9d;
+
+    border: 1px solid rgba(255,80,80,0.25);
+}
+
+.exit-button:hover {
+    background: rgba(255,80,80,0.2);
+}
+
+.level-badge {
+    padding: 10px 18px;
+
+    border-radius: 30px;
+
+    background: #ffd166;
+    color: #1c1934;
+
+    font-weight: bold;
+}
+
+.question-score {
+    color: #ffd166;
+}
+
+.quiz-player-info {
+    color: #bbb;
+    margin-bottom: 20px;
+}
+
+.question-progress {
+    margin-bottom: 20px;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+
+    margin-bottom: 8px;
+
+    color: #bbb;
+    font-size: 14px;
+}
+
+.progress-track {
+    width: 100%;
+    height: 8px;
+
+    background: rgba(255,255,255,0.1);
+
+    border-radius: 20px;
+
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 20%;
+    height: 100%;
+
+    background: #ffd166;
+
+    transition: width 0.3s;
+}
+
+.question-card {
+    padding: 30px;
+
+    text-align: center;
+
+    border-radius: 22px;
+
+    background: rgba(255,255,255,0.08);
+
+    border: 1px solid rgba(255,255,255,0.15);
+
+    margin-bottom: 25px;
+}
+
+.question-icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+
+.question-card h2 {
+    font-size: 24px;
+    line-height: 1.5;
+}
+
+.voice-button {
+    margin-top: 20px;
+
+    padding: 10px 15px;
+
+    border-radius: 10px;
+
+    border: 1px solid rgba(255,255,255,0.2);
+
+    background: rgba(255,255,255,0.07);
+    color: white;
+}
+
+.voice-button:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+
+/* ================= OPTIONS ================= */
+
+.options-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.option-button {
+    min-height: 65px;
+
+    padding: 15px;
+
+    border-radius: 15px;
+
+    border: 1px solid rgba(255,255,255,0.15);
+
+    background: rgba(255,255,255,0.07);
+
+    color: white;
+
+    cursor: pointer;
+
+    font-size: 16px;
+
+    transition: 0.25s;
+
+    text-align: left;
+}
+
+.option-button:hover:not(:disabled) {
+    transform: translateY(-3px);
+
+    border-color: #ffd166;
+
+    background: rgba(255,209,102,0.1);
+}
+
+.option-button.correct {
+    background: rgba(40,200,120,0.2);
+    border-color: #4ee69a;
+}
+
+.option-button.wrong {
+    background: rgba(255,70,70,0.2);
+    border-color: #ff7070;
+}
+
+.option-button:disabled {
+    cursor: default;
+}
+
+
+/* ================= CLUES ================= */
+
+.clue-section {
+    margin-top: 25px;
+
+    padding: 20px;
+
+    border-radius: 16px;
+
+    background: rgba(255,255,255,0.05);
+}
+
+.clue-section h3 {
+    margin-bottom: 12px;
+}
+
+.clue-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.clue-buttons button {
+    padding: 8px 12px;
+
+    border-radius: 10px;
+
+    border: 1px solid rgba(255,255,255,0.15);
+
+    background: rgba(255,255,255,0.06);
+
+    color: white;
+
+    cursor: pointer;
+}
+
+.clue-buttons button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+#clueText {
+    margin-top: 12px;
+
+    color: #ffd166;
+
+    line-height: 1.5;
+}
+
+
+/* ================= FEEDBACK ================= */
+
+.feedback {
+    min-height: 30px;
+
+    margin: 20px 0;
+
+    text-align: center;
+
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.feedback.correct {
+    color: #5df0a3;
+}
+
+.feedback.wrong {
+    color: #ff7777;
+}
+
+
+/* ================= NEXT ================= */
+
+.next-button {
+    width: 100%;
+
+    padding: 15px;
+
+    border: none;
+    border-radius: 14px;
+
+    background: #ffd166;
+    color: #1b1730;
+
+    font-size: 17px;
+    font-weight: bold;
+}
+
+.next-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.next-button:not(:disabled):hover {
+    transform: translateY(-2px);
+}
+
+
+/* ================= RESULT ================= */
+
+.result-container {
+    width: 100%;
+    max-width: 650px;
+
+    margin: auto;
+
+    padding: 70px 20px;
+
+    text-align: center;
+}
+
+.result-icon {
+    font-size: 80px;
+    margin-bottom: 15px;
+}
+
+.result-container h1 {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+.result-container > p {
+    color: #bbb;
+    margin-bottom: 30px;
+}
+
+.result-card {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 10px;
+
+    padding: 20px;
+
+    border-radius: 20px;
+
+    background: rgba(255,255,255,0.08);
+
+    border: 1px solid rgba(255,255,255,0.15);
+
+    margin-bottom: 25px;
+}
+
+.result-card > div {
+    padding: 15px;
+}
+
+.result-card span,
+.result-card strong {
+    display: block;
+}
+
+.result-card span {
+    color: #aaa;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.result-card strong {
+    font-size: 25px;
+    color: #ffd166;
+}
+
+.result-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+
+    flex-wrap: wrap;
+
+    margin-top: 20px;
+}
+
+.result-buttons button {
+    padding: 13px 20px;
+
+    border-radius: 12px;
+
+    border: none;
+
+    cursor: pointer;
+
+    font-weight: bold;
+}
+
+.retry-result-button {
+    background: #ff7676;
+    color: white;
+}
+
+.next-result-button {
+    background: #ffd166;
+    color: #1c1934;
+}
+
+.topic-result-button,
+.home-result-button {
+    background: rgba(255,255,255,0.1);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+}
+
+
+/* ================= LEADERBOARD ================= */
+
+.leaderboard-list {
+    max-width: 800px;
+
+    margin: auto;
+}
+
+.leaderboard-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 18px 20px;
+
+    margin-bottom: 12px;
+
+    border-radius: 15px;
+
+    background: rgba(255,255,255,0.07);
+
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.leaderboard-rank {
+    font-size: 24px;
+}
+
+.leaderboard-name {
+    flex: 1;
+    margin-left: 15px;
+}
+
+.leaderboard-score {
+    color: #ffd166;
+    font-weight: bold;
+}
+
+.loading-text {
+    text-align: center;
+    color: #aaa;
+}
+
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 850px) {
+
+    .topic-card {
+        width: 75%;
+    }
+
+    .topic-card:nth-child(odd)::after {
+        right: -22px;
+    }
+
+    .topic-card:nth-child(even)::after {
+        left: -22px;
+    }
+
+    .level-node:nth-child(odd) {
+        margin-right: 80px;
+    }
+
+    .level-node:nth-child(even) {
+        margin-left: 80px;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .game-title {
+        font-size: 38px;
+    }
+
+    .top-bar {
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+    }
+
+    .top-title {
+        text-align: right;
+        font-size: 19px;
+    }
+
+    .topic-grid::before {
+        left: 20px;
+    }
+
+    .topic-card,
+    .topic-card:nth-child(odd),
+    .topic-card:nth-child(even) {
+        width: calc(100% - 50px);
+        align-self: flex-end;
+    }
+
+    .topic-card:nth-child(odd)::after,
+    .topic-card:nth-child(even)::after {
+        left: -34px;
+        right: auto;
+    }
+
+    .adventure-map {
+        padding: 50px 15px 100px;
+    }
+
+    .level-node:nth-child(odd) {
+        margin-right: 40px;
+    }
+
+    .level-node:nth-child(even) {
+        margin-left: 40px;
+    }
+
+    .level-node {
+        width: 78px;
+        height: 62px;
+        font-size: 18px;
+    }
+
+    .options-container {
+        grid-template-columns: 1fr;
+    }
+
+    .question-card h2 {
+        font-size: 20px;
+    }
+
+    .result-card {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .quiz-top-bar {
+        flex-wrap: wrap;
+    }
+
+    .start-camp,
+    .finish-castle {
+        font-size: 25px;
+    }
+
+}
+
+@media (max-width: 380px) {
+
+    .level-node:nth-child(odd) {
+        margin-right: 15px;
+    }
+
+    .level-node:nth-child(even) {
+        margin-left: 15px;
+    }
+
+    .level-node {
+        width: 68px;
+        height: 56px;
+        font-size: 16px;
+    }
+
+    .level-node span {
+        font-size: 9px;
+    }
+
+}

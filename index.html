@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AptitudeQuest</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+        import {
+            getAuth,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            getDocs,
+            query,
+            orderBy,
+            limit
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtv8A3txBv3KhW6b3HDWszMQbMJkme_ZY",
+            authDomain: "aptiquestgame.firebaseapp.com",
+            projectId: "aptiquestgame",
+            storageBucket: "aptiquestgame.firebasestorage.app",
+            messagingSenderId: "815151441727",
+            appId: "1:815151441727:web:5b59ed43362bd7bd8ed58a",
+            measurementId: "G-62F9T1VB4L"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseDB = db;
+        window.firebaseAuth = auth;
+
+        window.firebaseTools = {
+            collection,
+            addDoc,
+            getDocs,
+            query,
+            orderBy,
+            limit
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            window.firebaseUser = user || null;
+        });
+    </script>
+</head>
+
+<body>
+
+<!-- Background -->
+<div class="background-symbols">
+    <span>+</span>
+    <span>÷</span>
+    <span>×</span>
+    <span>%</span>
+    <span>?</span>
+    <span>π</span>
+    <span>√</span>
+    <span>∞</span>
+</div>
+
+
+<!-- ================= HOME ================= -->
+
+<section id="homeScreen" class="screen active">
+
+    <div class="home-container">
+
+        <div class="logo-circle">
+            🧠
+        </div>
+
+        <h1 class="game-title">
+            Aptitude<span>Quest</span>
+        </h1>
+
+        <p class="game-subtitle">
+            Master Aptitude. Level Up. Get Placement Ready.
+        </p>
+
+        <div class="home-card">
+
+            <label>Your Name</label>
+
+            <input
+                type="text"
+                id="nameInput"
+                placeholder="Enter your name"
+                maxlength="30"
+            >
+
+            <label>Your Age</label>
+
+            <input
+                type="number"
+                id="ageInput"
+                placeholder="Enter your age"
+                min="6"
+                max="80"
+            >
+
+            <p id="ageMessage" class="age-message"></p>
+
+            <div class="player-preview">
+
+                <div class="avatar">
+                    👩‍💻
+                </div>
+
+                <div>
+                    <strong id="previewName">
+                        Player
+                    </strong>
+
+                    <span id="previewAge">
+                        Age not set
+                    </span>
+                </div>
+
+            </div>
+
+            <button
+                id="startQuestButton"
+                class="main-button"
+            >
+                🚀 Start Quest
+            </button>
+
+            <button
+                id="leaderboardButton"
+                class="secondary-button"
+            >
+                🏆 Leaderboard
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= TOPIC SCREEN ================= -->
+
+<section id="topicScreen" class="screen">
+
+    <div class="page-container">
+
+        <div class="top-bar">
+
+            <button
+                class="back-button"
+                onclick="goHome()"
+            >
+                ← Home
+            </button>
+
+            <div class="top-title">
+                Choose Your Quest
+            </div>
+
+            <div></div>
+
+        </div>
+
+        <div
+            id="playerInfoTopic"
+            class="player-info"
+        ></div>
+
+        <h2 class="section-heading">
+            Choose an Aptitude Topic
+        </h2>
+
+        <p class="section-description">
+            Complete all 10 levels in a topic and become placement ready.
+        </p>
+
+        <div
+            id="topicGrid"
+            class="topic-grid"
+        ></div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= LEVEL SCREEN ================= -->
+
+<section id="levelScreen" class="screen">
+
+    <div class="page-container">
+
+        <div class="top-bar">
+
+            <button
+                class="back-button"
+                onclick="goToTopics()"
+            >
+                ← Topics
+            </button>
+
+            <div class="top-title">
+                Adventure Map
+            </div>
+
+            <div></div>
+
+        </div>
+
+        <div class="map-header">
+
+            <h2 id="mapTopicTitle">
+                Topic
+            </h2>
+
+            <p id="mapTopicDescription">
+                Choose a level and start your quest.
+            </p>
+
+        </div>
+
+        <div class="adventure-map">
+
+            <div class="moon">
+                π
+            </div>
+
+            <div class="cloud cloud-one">
+                √
+            </div>
+
+            <div class="cloud cloud-two">
+                ∞
+            </div>
+
+            <div class="map-road"></div>
+
+            <div
+                id="levelPath"
+                class="level-path"
+            ></div>
+
+            <div class="start-camp">
+                🏕️
+                <span>START</span>
+            </div>
+
+            <div class="finish-castle">
+                🏰
+                <span>QUEST COMPLETE</span>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= QUIZ SCREEN ================= -->
+
+<section id="quizScreen" class="screen">
+
+    <div class="quiz-container">
+
+        <div class="quiz-top-bar">
+
+            <button
+                class="exit-button"
+                onclick="exitQuiz()"
+            >
+                ✕ Exit
+            </button>
+
+            <div
+                id="levelBadge"
+                class="level-badge"
+            >
+                Level 1
+            </div>
+
+            <div
+                id="questionScore"
+                class="question-score"
+            >
+                Score: 0
+            </div>
+
+        </div>
+
+
+        <div class="quiz-player-info">
+            <span id="playerInfoQuiz"></span>
+        </div>
+
+
+        <div class="question-progress">
+
+            <div class="progress-info">
+
+                <span id="questionNumber">
+                    Question 1 / 5
+                </span>
+
+                <span id="questionWrong">
+                    Wrong: 0 / 2
+                </span>
+
+            </div>
+
+            <div class="progress-track">
+
+                <div
+                    id="progressBar"
+                    class="progress-fill"
+                ></div>
+
+            </div>
+
+        </div>
+
+
+        <div class="question-card">
+
+            <div class="question-icon">
+                ❓
+            </div>
+
+            <h2 id="questionText">
+                Question
+            </h2>
+
+            <button
+                id="voiceButton"
+                class="voice-button"
+                onclick="speakQuestion()"
+            >
+                🔊 Listen
+            </button>
+
+        </div>
+
+
+        <div
+            id="optionsContainer"
+            class="options-container"
+        ></div>
+
+
+        <div class="clue-section">
+
+            <h3>💡 Clues</h3>
+
+            <div class="clue-buttons">
+
+                <button
+                    id="clueBtn"
+                    onclick="useClue()"
+                >
+                    💡 Show Clue
+                </button>
+
+            </div>
+
+            <p id="clueText"></p>
+
+        </div>
+
+
+        <div
+            id="feedback"
+            class="feedback"
+        ></div>
+
+
+        <button
+            id="nextButton"
+            class="next-button"
+            onclick="nextQuestion()"
+            disabled
+        >
+            Next Question →
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- ================= RESULT SCREEN ================= -->
+
+<section id="resultScreen" class="screen">
+
+    <div class="result-container">
+
+        <div
+            id="resultIcon"
+            class="result-icon"
+        >
+            🎉
+        </div>
+
+        <h1 id="resultTitle">
+            Level Passed!
+        </h1>
+
+        <p id="resultMessage">
+            Congratulations!
+        </p>
+
+
+        <div class="result-card">
+
+            <div class="result-level">
+                <span>Level</span>
+                <strong id="finalLevelScore">
+                    1
+                </strong>
+            </div>
+
+            <div class="result-stat">
+                <span>Correct</span>
+                <strong id="correctCount">
+                    0
+                </strong>
+            </div>
+
+            <div class="result-stat">
+                <span>Wrong</span>
+                <strong id="wrongCount">
+                    0
+                </strong>
+            </div>
+
+            <div class="result-stat">
+                <span>Accuracy</span>
+                <strong id="accuracyCount">
+                    0%
+                </strong>
+            </div>
+
+        </div>
+
+
+        <h3 id="resultPlayer">
+            Player
+        </h3>
+
+
+        <div
+            id="resultButtons"
+            class="result-buttons"
+        ></div>
+
+    </div>
+
+</section>
+
+
+<!-- ================= LEADERBOARD ================= -->
+
+<section id="leaderboardScreen" class="screen">
+
+    <div class="page-container">
+
+        <div class="top-bar">
+
+            <button
+                class="back-button"
+                onclick="goHome()"
+            >
+                ← Home
+            </button>
+
+            <div class="top-title">
+                🏆 Leaderboard
+            </div>
+
+            <div></div>
+
+        </div>
+
+        <div
+            id="leaderboardList"
+            class="leaderboard-list"
+        >
+
+            <p class="loading-text">
+                Loading leaderboard...
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>

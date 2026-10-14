@@ -11,6 +11,7 @@
 const TOTAL_LEVELS = 10;
 const QUESTIONS_PER_LEVEL = 5;
 const MAX_WRONG = 3;   // 3 or more wrong = fail (3 correct out of 5 = pass)
+const MAX_WRONG_ALLOWED = MAX_WRONG - 1;   // wrong answers the player may show before failing
 
 
 /* =========================================================
@@ -2133,7 +2134,7 @@ function displayQuestion() {
 
     setText(
         "questionWrong",
-        `Wrong: ${wrongAnswers} / ${MAX_WRONG}`
+        `Wrong: ${Math.min(wrongAnswers, MAX_WRONG_ALLOWED)} / ${MAX_WRONG_ALLOWED}`
     );
 
 
@@ -2344,7 +2345,7 @@ function selectAnswer(
 
     setText(
         "questionWrong",
-        `Wrong: ${wrongAnswers} / ${MAX_WRONG}`
+        `Wrong: ${Math.min(wrongAnswers, MAX_WRONG_ALLOWED)} / ${MAX_WRONG_ALLOWED}`
     );
 
 
@@ -2359,10 +2360,17 @@ function selectAnswer(
 
 
     /*
-       TWO WRONG ANSWERS = IMMEDIATE FAIL
+       MAX WRONG REACHED = IMMEDIATE FAIL
     */
 
-    
+    if (wrongAnswers >= MAX_WRONG) {
+
+        if (nextButton) {
+            nextButton.disabled = true;
+        }
+
+        finishLevel(false);
+    }
 }
 
 
@@ -2447,11 +2455,7 @@ function finishLevel(passed) {
 function unlockNextLevel() {
 
     const currentUnlocked =
-        Number(
-            localStorage.getItem(
-                getUnlockedKey()
-            ) || 1
-        );
+        getUnlockedLevel();
 
 
     if (
@@ -2485,11 +2489,16 @@ function showResult(passed) {
     );
 
 
+    const answered =
+        correctAnswers + wrongAnswers;
+
+
     const accuracy =
-        Math.round(
-            (correctAnswers /
-                QUESTIONS_PER_LEVEL) * 100
-        );
+        answered > 0
+            ? Math.round(
+                (correctAnswers / answered) * 100
+            )
+            : 0;
 
 
     setText(
@@ -2855,13 +2864,14 @@ function startGame() {
 
     if (
         !age ||
+        !Number.isInteger(age) ||
         age < 6 ||
         age > 80
     ) {
 
         setText(
             "ageMessage",
-            "Please enter a valid age between 6 and 80."
+            "Please enter a valid whole-number age between 6 and 80."
         );
 
         return;
@@ -3058,10 +3068,22 @@ function openTopic(topicId) {
 
 function getUnlockedLevel() {
 
-    return Number(
-        localStorage.getItem(
-            getUnlockedKey()
-        ) || 1
+    const value =
+        Number(
+            localStorage.getItem(
+                getUnlockedKey()
+            ) || 1
+        );
+
+
+    if (!Number.isFinite(value)) {
+        return 1;
+    }
+
+
+    return Math.min(
+        Math.max(1, Math.round(value)),
+        TOTAL_LEVELS
     );
 }
 
@@ -3216,9 +3238,16 @@ function exitQuiz() {
     }
 
 
-    openTopic(
-        currentTopic
-    );
+    if (currentTopic) {
+
+        openTopic(
+            currentTopic
+        );
+
+    } else {
+
+        goToTopics();
+    }
 }
 
 
@@ -3905,25 +3934,25 @@ function pick(list, b, l) {
 const NUMBERS = {
     kid: (b, l) => {
         const m = b ? 20 + l * 8 : 6 + l * 2, a = r(2, m), c = r(1, m), t = r(0, b ? 4 : 3);
-        if (t === 0) return mk(`What is ${a} + ${c}?`, a + c, `${a} + ${c} = ${a + c}.`, "Count up from the bigger number.");
-        if (t === 1) return mk(`What is ${a + c} − ${c}?`, a, `${a + c} − ${c} = ${a}.`, "Count backwards.");
-        if (t === 2) { const s = R([2, 5, 10]); return mk(`Count by ${s}s: ${s}, ${2 * s}, ${3 * s}, ${4 * s}, what comes next?`, 5 * s, `Add ${s} each time.`, `Jump ${s} each time.`); }
+        if (t === 0) return mk(`What is ${a} + ${c}?`, a + c, `${a} + ${c} = ${a + c}.`, "Start from the bigger number and count up the smaller one.");
+        if (t === 1) return mk(`What is ${a + c} − ${c}?`, a, `${a + c} − ${c} = ${a}.`, "Count backwards from the bigger number.");
+        if (t === 2) { const s = R([2, 5, 10]); return mk(`Count by ${s}s: ${s}, ${2 * s}, ${3 * s}, ${4 * s}, what comes next?`, 5 * s, `Add ${s} each time.`, "Look at the jump between two neighbouring numbers."); }
         if (t === 3) { const e = r(1, m) * 2; return mk("Which of these is an even number?", e, `${e} can be shared equally between 2.`, "Even numbers end in 0, 2, 4, 6 or 8.", [e + 1, e + 3, e - 1]); }
         const x = r(2, 5 + Math.ceil(l / 2)), y = r(2, 5 + Math.ceil(l / 2));
-        return mk(`What is ${x} × ${y}?`, x * y, `${x} groups of ${y} = ${x * y}.`, "Multiplication is repeated addition.");
+        return mk(`What is ${x} × ${y}?`, x * y, `${x} groups of ${y} = ${x * y}.`, "Multiplication is repeated addition: how many groups, and how many in each?");
     },
     list: [
-        [(b, l, s) => { const a = r(6, 9 + b * 3), c = r(6, 12 + b * 4); return mk(`What is ${a} × ${c}?`, a * c, `${a} × ${c} = ${a * c}.`); }, 2],
-        [(b, l, s) => { const c = r(3, 12), q = r(4, Math.round(10 * s)); return mk(`What is ${c * q} ÷ ${c}?`, q, `${c} × ${q} = ${c * q}.`, "Which number multiplied by the divisor gives the total?"); }, 2],
-        [() => { const p = R([[4, 6], [6, 8], [9, 12], [12, 18], [15, 20], [8, 12]]); const k = r(1, 3); const a = p[0] * k, c = p[1] * k; return mk(`Find the LCM of ${a} and ${c}.`, a * c / gcd(a, c), `LCM = (${a} × ${c}) ÷ HCF = ${a * c / gcd(a, c)}.`, "LCM is the smallest common multiple."); }, 2],
-        [() => { const p = R([[12, 18], [24, 36], [16, 40], [30, 45], [48, 72], [28, 42]]); return mk(`Find the HCF of ${p[0]} and ${p[1]}.`, gcd(p[0], p[1]), `The greatest common factor of ${p[0]} and ${p[1]} is ${gcd(p[0], p[1])}.`, "HCF is the greatest number that divides both."); }, 2],
-        [() => { const d = r(5, 9), q = r(6, 40), rem = r(1, d - 1); return mk(`What is the remainder when ${d * q + rem} is divided by ${d}?`, rem, `${d * q + rem} = ${d} × ${q} + ${rem}.`, "Divide and see what is left over."); }, 3],
-        [() => { const n = r(10, 60); return mk(`What is the sum of the first ${n} natural numbers?`, n * (n + 1) / 2, `n(n+1)/2 = ${n}×${n + 1}/2 = ${n * (n + 1) / 2}.`, "Use n(n+1)/2."); }, 3],
-        [() => { const n = r(7, 30); return mk(`What is the value of √${n * n}?`, n, `${n} × ${n} = ${n * n}.`, "Which number multiplied by itself gives this?"); }, 3],
-        [() => { const p = R([[36, 9], [48, 10], [60, 12], [72, 12], [100, 9], [64, 7]]); return mk(`How many factors does ${p[0]} have?`, p[1], `${p[0]} has exactly ${p[1]} factors.`, "Use prime factorisation."); }, 3],
-        [() => { const d = R([6, 7, 8, 9, 11, 13]); const n = 999 - 999 % d; return mk(`What is the greatest 3-digit number divisible by ${d}?`, n, `999 − (999 mod ${d}) = ${n}.`, "Divide 999 by the number and find the remainder."); }, 4],
-        [() => { const b2 = R([2, 3, 7, 8, 9]), e = r(10, 60), cyc = { 2: [2, 4, 8, 6], 3: [3, 9, 7, 1], 7: [7, 9, 3, 1], 8: [8, 4, 2, 6], 9: [9, 1] }[b2]; return mk(`What is the unit digit of ${b2}^${e}?`, cyc[(e - 1) % cyc.length], `Unit digits repeat in a cycle of ${cyc.length}.`, "Find the repeating cycle of unit digits."); }, 4],
-        [() => { const n = R([25, 50, 75, 100, 125, 150]); return mk(`How many trailing zeros does ${n}! have?`, Math.floor(n / 5) + Math.floor(n / 25) + Math.floor(n / 125), "Count the factors of 5: ⌊n/5⌋ + ⌊n/25⌋ + ⌊n/125⌋.", "Zeros come from pairs of 2 and 5."); }, 5]
+        [(b, l, s) => { const a = r(6, 9 + b * 3), c = r(6, 12 + b * 4); const big = Math.max(a, c), small = Math.min(a, c), t = big - big % 10, o = big % 10; const hint = (t > 0 && o > 0) ? "Break the bigger number into tens and ones, multiply each part by the smaller number, then add." : "Use the times table of the smaller number."; return mk(`What is ${a} × ${c}?`, a * c, `${a} × ${c} = ${a * c}.`, hint); }, 2],
+        [(b, l, s) => { const c = r(3, 12), q = r(4, Math.round(10 * s)); return mk(`What is ${c * q} ÷ ${c}?`, q, `${c} × ${q} = ${c * q}.`, "Think of the matching multiplication fact: divisor × ? = total."); }, 2],
+        [() => { const p = R([[4, 6], [6, 8], [9, 12], [12, 18], [15, 20], [8, 12]]); const k = r(1, 3); const a = p[0] * k, c = p[1] * k; return mk(`Find the LCM of ${a} and ${c}.`, a * c / gcd(a, c), `LCM = (${a} × ${c}) ÷ HCF = ${a * c / gcd(a, c)}.`, "List multiples of the bigger number until the smaller number divides one of them exactly."); }, 2],
+        [() => { const p = R([[12, 18], [24, 36], [16, 40], [30, 45], [48, 72], [28, 42]]); return mk(`Find the HCF of ${p[0]} and ${p[1]}.`, gcd(p[0], p[1]), `The greatest common factor of ${p[0]} and ${p[1]} is ${gcd(p[0], p[1])}.`, "List the factors of both numbers and look for the biggest one they share."); }, 2],
+        [() => { const d = r(5, 9), q = r(6, 40), rem = r(1, d - 1); return mk(`What is the remainder when ${d * q + rem} is divided by ${d}?`, rem, `${d * q + rem} = ${d} × ${q} + ${rem}.`, "Find the biggest multiple of the divisor that fits inside the number. What is left over?"); }, 3],
+        [() => { const n = r(10, 60); return mk(`What is the sum of the first ${n} natural numbers?`, n * (n + 1) / 2, `n(n+1)/2 = ${n}×${n + 1}/2 = ${n * (n + 1) / 2}.`, "Pair the first and last numbers: every pair has the same sum. Or recall n(n+1)/2."); }, 3],
+        [() => { const n = r(7, 30); return mk(`What is the value of √${n * n}?`, n, `${n} × ${n} = ${n * n}.`, "Use the last digit and the nearest tens to narrow down the choices."); }, 3],
+        [() => { const p = R([[36, 9], [48, 10], [60, 12], [72, 12], [100, 9], [64, 7]]); return mk(`How many factors does ${p[0]} have?`, p[1], `${p[0]} has exactly ${p[1]} factors.`, "Break it into prime factors, then add 1 to each power and multiply."); }, 3],
+        [() => { const d = R([6, 7, 8, 9, 11, 13]); const n = 999 - 999 % d; return mk(`What is the greatest 3-digit number divisible by ${d}?`, n, `999 − (999 mod ${d}) = ${n}.`, "Divide 999 by the number. How far is 999 above the nearest multiple?"); }, 4],
+        [() => { const b2 = R([2, 3, 7, 8, 9]), e = r(10, 60), cyc = { 2: [2, 4, 8, 6], 3: [3, 9, 7, 1], 7: [7, 9, 3, 1], 8: [8, 4, 2, 6], 9: [9, 1] }[b2]; return mk(`What is the unit digit of ${b2}^${e}?`, cyc[(e - 1) % cyc.length], `Unit digits repeat in a cycle of ${cyc.length}.`, "Unit digits repeat in a cycle. Find the cycle, then see where the power lands in it."); }, 4],
+        [() => { const n = R([25, 50, 75, 100, 125, 150]); return mk(`How many trailing zeros does ${n}! have?`, Math.floor(n / 5) + Math.floor(n / 25) + Math.floor(n / 125), "Count the factors of 5: ⌊n/5⌋ + ⌊n/25⌋ + ⌊n/125⌋.", "Zeros come from pairs of 2 and 5, and 5s are rarer. Count the 5s."); }, 5]
     ]
 };
 
@@ -3934,17 +3963,17 @@ const PERCENTAGE = {
         const t = r(0, 2);
         if (t === 0) return mk(`What is half of ${2 * n}?`, n, `${2 * n} ÷ 2 = ${n}.`, "Split into 2 equal parts.");
         if (t === 1) return mk(`What is double ${n}?`, 2 * n, `${n} + ${n} = ${2 * n}.`, "Add the number to itself.");
-        return mk(`A pizza has ${2 * n} slices. You eat half. How many slices are left?`, n, `Half of ${2 * n} is ${n}.`, "Half means 2 equal parts.");
+        return mk(`A pizza has ${2 * n} slices. You eat half. How many slices are left?`, n, `Half of ${2 * n} is ${n}.`, "Eating half means the other half is left.");
     },
     list: [
-        [() => { const n = 20 * r(2, 15), p = R([10, 20, 25, 50]); return mk(`What is ${p}% of ${n}?`, n * p / 100, `${p}% of ${n} = ${n * p / 100}.`); }, 2],
-        [() => { const n = 20 * r(2, 25), p = R([10, 20, 25, 50]); return mk(`A number ${n} is increased by ${p}%. What is the new number?`, n * (100 + p) / 100, `${n} × ${100 + p}/100 = ${n * (100 + p) / 100}.`); }, 2],
-        [() => { const n = 20 * r(3, 40), p = R([10, 20, 25, 30]); return mk(`A shirt costs ${rs(n)}. A ${p}% discount is given. What is the price now?`, rs(n * (100 - p) / 100), `${100 - p}% of ${n} = ${n * (100 - p) / 100}.`, "Subtract the discount from 100%."); }, 2],
+        [() => { const n = 20 * r(2, 15), p = R([10, 20, 25, 50]); const ph = { 10: "10% means divide by 10.", 20: "20% means one-fifth. Divide by 5.", 25: "25% means one-quarter. Divide by 4.", 50: "50% means half. Divide by 2." }[p]; return mk(`What is ${p}% of ${n}?`, n * p / 100, `${p}% of ${n} = ${n * p / 100}.`, ph); }, 2],
+        [() => { const n = 20 * r(2, 25), p = R([10, 20, 25, 50]); return mk(`A number ${n} is increased by ${p}%. What is the new number?`, n * (100 + p) / 100, `${n} × ${100 + p}/100 = ${n * (100 + p) / 100}.`, "Find the increase first, then add it to the original number."); }, 2],
+        [() => { const n = 20 * r(3, 40), p = R([10, 20, 25, 30]); return mk(`A shirt costs ${rs(n)}. A ${p}% discount is given. What is the price now?`, rs(n * (100 - p) / 100), `${100 - p}% of ${n} = ${n * (100 - p) / 100}.`, "You pay (100 − discount)% of the price. Find that part."); }, 2],
         [() => { const bb = 20 * r(2, 12), p = R([10, 25, 40, 50, 75]); return mk(`What percent of ${bb} is ${bb * p / 100}?`, p + "%", `${bb * p / 100}/${bb} × 100 = ${p}%.`, "Part ÷ whole × 100."); }, 3],
-        [() => { const o = 20 * r(5, 40), p = R([10, 20, 25, 50]); const v = o * (100 + p) / 100; return mk(`After a ${p}% increase, a value becomes ${v}. What was the original value?`, o, `Original = ${v} × 100/${100 + p} = ${o}.`, "The new value is (100+p)% of the original."); }, 4],
-        [() => { const x = R([10, 20, 25, 50]), y = R([10, 20, 25]); const net = num(x - y - x * y / 100); const a = net >= 0 ? `${net}% increase` : `${-net}% decrease`; return mk(`A value is increased by ${x}% and then decreased by ${y}%. What is the net change?`, a, `Take 100: 100 × ${100 + x}/100 × ${100 - y}/100 = ${num(100 + net)}.`, "Assume the original value is 100.", [`${Math.abs(num(x - y))}% ${x >= y ? "increase" : "decrease"}`, "No change", `${num(Math.abs(net) + 5)}% ${net >= 0 ? "decrease" : "increase"}`, `${num(Math.abs(net) + 2)}% ${net >= 0 ? "increase" : "decrease"}`]); }, 4],
-        [() => { const p = R([[25, 20], [100, 50], [150, 60], [300, 75]]); return mk(`A's salary is ${p[0]}% more than B's. B's salary is what percent less than A's?`, p[1] + "%", `Take B = 100, A = ${100 + p[0]}. Difference ÷ A = ${p[1]}%.`, "The base changes: compare with A now.", [p[0] + "%", (p[1] + 5) + "%", (p[1] - 5) + "%"]); }, 5],
-        [() => { const n = 25 * r(2, 40) * 100 / 25, p = R([10, 20]); return mk(`A town's population of ${n} grows by ${p}% every year. What will it be after 2 years?`, num(n * (1 + p / 100) ** 2), `${n} × ${1 + p / 100} × ${1 + p / 100}.`, "Apply the increase twice, one after the other."); }, 5]
+        [() => { const o = 20 * r(5, 40), p = R([10, 20, 25, 50]); const v = o * (100 + p) / 100; return mk(`After a ${p}% increase, a value becomes ${v}. What was the original value?`, o, `Original = ${v} × 100/${100 + p} = ${o}.`, `Treat the original as 100%. The new value is ${100 + p}% of it. Work backwards.`); }, 4],
+        [() => { const x = R([10, 20, 25, 50]), y = R([10, 20, 25]); const net = num(x - y - x * y / 100); const a = net >= 0 ? `${net}% increase` : `${-net}% decrease`; return mk(`A value is increased by ${x}% and then decreased by ${y}%. What is the net change?`, a, `Take 100: 100 × ${100 + x}/100 × ${100 - y}/100 = ${num(100 + net)}.`, "Assume the value is 100 and apply the two changes one after the other.", [`${Math.abs(num(x - y))}% ${x >= y ? "increase" : "decrease"}`, "No change", `${num(Math.abs(net) + 5)}% ${net >= 0 ? "decrease" : "increase"}`, `${num(Math.abs(net) + 2)}% ${net >= 0 ? "increase" : "decrease"}`]); }, 4],
+        [() => { const p = R([[25, 20], [100, 50], [150, 60], [300, 75]]); return mk(`A's salary is ${p[0]}% more than B's. B's salary is what percent less than A's?`, p[1] + "%", `Take B = 100, A = ${100 + p[0]}. Difference ÷ A = ${p[1]}%.`, "Assume B = 100 and find A. Then compare the difference with A, not B.", [p[0] + "%", (p[1] + 5) + "%", (p[1] - 5) + "%"]); }, 5],
+        [() => { const n = 25 * r(2, 40) * 100 / 25, p = R([10, 20]); return mk(`A town's population of ${n} grows by ${p}% every year. What will it be after 2 years?`, num(n * (1 + p / 100) ** 2), `${n} × ${1 + p / 100} × ${1 + p / 100}.`, "Apply the growth one year at a time."); }, 5]
     ]
 };
 
@@ -3952,19 +3981,19 @@ const PERCENTAGE = {
 const PROFITLOSS = {
     kid: (b, l) => {
         const a = r(10, 30 + l * 5 * (b + 1)), c = r(2, a - 1), k = r(2, 5), t = r(0, 2);
-        if (t === 0) return mk(`Riya has ${rs(a)}. She buys a pencil for ${rs(c)}. How much money is left?`, rs(a - c), `${a} − ${c} = ${a - c}.`, "Subtract the cost from the money she has.");
-        if (t === 1) return mk(`One eraser costs ${rs(c)}. How much do ${k} erasers cost?`, rs(c * k), `${c} × ${k} = ${c * k}.`, "Multiply the price by the number of items.");
+        if (t === 0) return mk(`Riya has ${rs(a)}. She buys a pencil for ${rs(c)}. How much money is left?`, rs(a - c), `${a} − ${c} = ${a - c}.`, "Subtract what was spent from what she had.");
+        if (t === 1) return mk(`One eraser costs ${rs(c)}. How much do ${k} erasers cost?`, rs(c * k), `${c} × ${k} = ${c * k}.`, "Same price for each item: think multiplication.");
         return mk(`Arjun pays ${rs(a + c)} for a toy that costs ${rs(a)}. How much change should he get back?`, rs(c), `${a + c} − ${a} = ${c}.`, "Change = money paid − cost.");
     },
     list: [
-        [() => { const cp = 20 * r(5, 40), p = R([10, 20, 25, 50]); return mk(`An article costing ${rs(cp)} is sold at ${p}% profit. Find the selling price.`, rs(cp * (100 + p) / 100), `SP = ${cp} × ${100 + p}/100 = ${cp * (100 + p) / 100}.`, "Profit % is always on cost price."); }, 2],
-        [() => { const cp = 20 * r(5, 40), p = R([10, 15, 20, 25]); const sp = cp * (100 + p) / 100; return mk(`An article bought for ${rs(cp)} is sold for ${rs(sp)}. What is the profit percent?`, p + "%", `Profit = ${sp - cp}. (${sp - cp}/${cp}) × 100 = ${p}%.`, "Profit % = profit ÷ CP × 100."); }, 2],
-        [() => { const cp = 20 * r(5, 50), l2 = R([10, 20, 25]); return mk(`A trader sells an article costing ${rs(cp)} at a ${l2}% loss. Find the selling price.`, rs(cp * (100 - l2) / 100), `SP = ${cp} × ${100 - l2}/100.`, "After a loss, only (100 − loss)% of CP is recovered."); }, 2],
-        [() => { const sp = 20 * r(5, 40), p = R([10, 20, 25]); const cp = sp; return mk(`By selling an article for ${rs(sp * (100 + p) / 100)}, a shopkeeper earns ${p}% profit. What was the cost price?`, rs(cp), `CP = SP × 100/${100 + p} = ${cp}.`, "SP is (100 + profit)% of CP."); }, 3],
-        [() => { const d = R([[10, 20], [20, 30], [25, 40]]); const x = R([10, 20, 25]), y = R([10, 20, 30]); const net = num(x + y - x * y / 100); return mk(`Two successive discounts of ${x}% and ${y}% are equal to a single discount of?`, net + "%", `${x} + ${y} − (${x}×${y})/100 = ${net}%.`, "Successive discounts are not simply added.", [(x + y) + "%", num(net + 2) + "%", num(net - 2) + "%"]); }, 3],
+        [() => { const cp = 20 * r(5, 40), p = R([10, 20, 25, 50]); return mk(`An article costing ${rs(cp)} is sold at ${p}% profit. Find the selling price.`, rs(cp * (100 + p) / 100), `SP = ${cp} × ${100 + p}/100 = ${cp * (100 + p) / 100}.`, "Profit is calculated on the cost price. Find the profit amount, then add it to the cost price."); }, 2],
+        [() => { const cp = 20 * r(5, 40), p = R([10, 15, 20, 25]); const sp = cp * (100 + p) / 100; return mk(`An article bought for ${rs(cp)} is sold for ${rs(sp)}. What is the profit percent?`, p + "%", `Profit = ${sp - cp}. (${sp - cp}/${cp}) × 100 = ${p}%.`, "Find the profit amount first, then compare it with the cost price."); }, 2],
+        [() => { const cp = 20 * r(5, 50), l2 = R([10, 20, 25]); return mk(`A trader sells an article costing ${rs(cp)} at a ${l2}% loss. Find the selling price.`, rs(cp * (100 - l2) / 100), `SP = ${cp} × ${100 - l2}/100.`, "Find the loss amount, then subtract it from the cost price."); }, 2],
+        [() => { const sp = 20 * r(5, 40), p = R([10, 20, 25]); const cp = sp; return mk(`By selling an article for ${rs(sp * (100 + p) / 100)}, a shopkeeper earns ${p}% profit. What was the cost price?`, rs(cp), `CP = SP × 100/${100 + p} = ${cp}.`, "The selling price is (100 + profit)% of the cost price. Work backwards."); }, 3],
+        [() => { const d = R([[10, 20], [20, 30], [25, 40]]); const x = R([10, 20, 25]), y = R([10, 20, 30]); const net = num(x + y - x * y / 100); return mk(`Two successive discounts of ${x}% and ${y}% are equal to a single discount of?`, net + "%", `${x} + ${y} − (${x}×${y})/100 = ${net}%.`, "Assume the price is 100 and apply the discounts one after the other.", [(x + y) + "%", num(net + 2) + "%", num(net - 2) + "%"]); }, 3],
         [() => { const c = R([[80, 25, 20], [60, 20, 10]]); const k = r(2, 12); const cp = c[0] * k; const mp = cp * (100 + c[1]) / (100 - c[2]); return mk(`A trader wants ${c[1]}% profit after giving a ${c[2]}% discount. The cost price is ${rs(cp)}. What should the marked price be?`, rs(mp), `Required SP = ${cp * (100 + c[1]) / 100}. MP = SP ÷ ${(100 - c[2]) / 100} = ${mp}.`, "Find the required SP first, then reverse the discount."); }, 4],
-        [() => { const c = R([[20, 10], [25, 20], [50, 20], [40, 25], [30, 10]]); const net = num((100 + c[0]) * (100 - c[1]) / 100 - 100); const a = net >= 0 ? `${net}% profit` : `${-net}% loss`; return mk(`A shopkeeper marks goods ${c[0]}% above cost and gives a ${c[1]}% discount. What is the profit or loss percent?`, a, `Take CP = 100. MP = ${100 + c[0]}. SP = ${num((100 + c[0]) * (100 - c[1]) / 100)}.`, "Assume the cost price is 100.", [`${num(Math.abs(net) + 2)}% profit`, `${num(Math.abs(net) + 3)}% loss`, "No profit no loss"]); }, 4],
-        [() => { const x = R([10, 20, 25]); const v = num(x * x / 100); return mk(`Two articles are sold at the same price. One at ${x}% profit and the other at ${x}% loss. What is the overall result?`, `${v}% loss`, `When SP is equal and gain% = loss%, there is always a loss of x²/100 = ${v}%.`, "Try the shortcut x²/100.", [`${v}% profit`, "No profit no loss", `${num(v * 2)}% loss`]); }, 5],
+        [() => { const c = R([[20, 10], [25, 20], [50, 20], [40, 25], [30, 10]]); const net = num((100 + c[0]) * (100 - c[1]) / 100 - 100); const a = net >= 0 ? `${net}% profit` : `${-net}% loss`; return mk(`A shopkeeper marks goods ${c[0]}% above cost and gives a ${c[1]}% discount. What is the profit or loss percent?`, a, `Take CP = 100. MP = ${100 + c[0]}. SP = ${num((100 + c[0]) * (100 - c[1]) / 100)}.`, "Assume CP = 100. Find the marked price, then the selling price after the discount.", [`${num(Math.abs(net) + 2)}% profit`, `${num(Math.abs(net) + 3)}% loss`, "No profit no loss"]); }, 4],
+        [() => { const x = R([10, 20, 25]); const v = num(x * x / 100); return mk(`Two articles are sold at the same price. One at ${x}% profit and the other at ${x}% loss. What is the overall result?`, `${v}% loss`, `When SP is equal and gain% = loss%, there is always a loss of x²/100 = ${v}%.`, "Compare the cost prices of the two articles. Which one cost more? The shortcut x²/100 gives the size of the change.", [`${v}% profit`, "No profit no loss", `${num(v * 2)}% loss`]); }, 5],
         [() => { const w = R([[900, 11.11], [800, 25], [750, 33.33], [950, 5.26]]); return mk(`A dishonest shopkeeper sells at cost price but uses a ${w[0]} g weight for 1 kg. What is his gain percent?`, w[1] + "%", `Gain = (1000 − ${w[0]})/${w[0]} × 100 ≈ ${w[1]}%.`, "Gain is divided by the weight actually given.", [num(w[1] + 3) + "%", num(w[1] - 3) + "%", (1000 - w[0]) / 10 + "%"]); }, 5]
     ]
 };
@@ -3973,17 +4002,17 @@ const PROFITLOSS = {
 const TIMEWORK = {
     kid: (b, l) => {
         const p = r(2, 4 + l), d = r(2, 5 + Math.ceil(l / 2));
-        if (b === 0 || r(0, 1)) return mk(`Meena reads ${p} pages every day. How many pages does she read in ${d} days?`, p * d, `${p} × ${d} = ${p * d}.`, "Multiply pages per day by the number of days.");
+        if (b === 0 || r(0, 1)) return mk(`Meena reads ${p} pages every day. How many pages does she read in ${d} days?`, p * d, `${p} × ${d} = ${p * d}.`, "Same amount each day: think multiplication.");
         const s = r(1, 9), h = r(1, 3);
-        return mk(`A class starts at ${s} o'clock and lasts ${h} hours. At what time does it end?`, `${s + h} o'clock`, `${s} + ${h} = ${s + h}.`, "Add the hours to the start time.", [`${s + h + 1} o'clock`, `${s + h - 1 || 12} o'clock`, `${s + h + 2} o'clock`]);
+        return mk(`A class starts at ${s} o'clock and lasts ${h} hours. At what time does it end?`, `${s + h} o'clock`, `${s} + ${h} = ${s + h}.`, "Add the duration to the start time.", [`${s + h + 1} o'clock`, `${s + h - 1 || 12} o'clock`, `${s + h + 2} o'clock`]);
     },
     list: [
-        [() => { const d = r(5, 30); return mk(`A can finish a job in ${d} days. What part of the job does A finish in 1 day?`, `1/${d}`, `One day's work = 1/${d}.`, "Total work is 1.", [`1/${d + 1}`, `2/${d}`, `1/${d - 1}`]); }, 2],
+        [() => { const d = r(5, 30); return mk(`A can finish a job in ${d} days. What part of the job does A finish in 1 day?`, `1/${d}`, `One day's work = 1/${d}.`, "Whole job = 1. One day's work = whole job ÷ number of days.", [`1/${d + 1}`, `2/${d}`, `1/${d - 1}`]); }, 2],
         [() => { const p = R([[10, 15, 6], [12, 24, 8], [20, 30, 12], [15, 30, 10], [6, 12, 4], [30, 45, 18], [12, 18, 7.2]]); return mk(`A can do a work in ${p[0]} days and B in ${p[1]} days. In how many days will they finish it together?`, p[2] + " days", `1/${p[0]} + 1/${p[1]} → together they take ${p[2]} days.`, "Add their one-day work, then take the reciprocal.", [num(p[2] + 2) + " days", num(p[2] + 4) + " days", num(p[2] - 1) + " days"]); }, 2],
-        [() => { const t = R([6, 8, 10, 12, 18, 20]), k = R([2, 3]); return mk(`A is ${k} times as efficient as B. If B alone takes ${t * k} days, how many days does A take?`, t + " days", `A takes 1/${k} of B's time: ${t * k}/${k} = ${t}.`, "More efficiency means less time.", [t * k + " days", (t + k) + " days", (t * k * 2) + " days"]); }, 3],
+        [() => { const t = R([6, 8, 10, 12, 18, 20]), k = R([2, 3]); return mk(`A is ${k} times as efficient as B. If B alone takes ${t * k} days, how many days does A take?`, t + " days", `A takes 1/${k} of B's time: ${t * k}/${k} = ${t}.`, "More efficient means less time. Divide B's time by the efficiency factor.", [t * k + " days", (t + k) + " days", (t * k * 2) + " days"]); }, 3],
         [() => { const m = r(3, 8), k = R([2, 3]), d = k * r(2, 5); return mk(`${m} men can complete a work in ${d} days. How many days will ${m * k} men take?`, d / k + " days", `Man-days = ${m} × ${d}. Days = ${m * d}/${m * k} = ${d / k}.`, "Work = men × days stays the same.", [d * k + " days", d + " days", (d / k + 2) + " days"]); }, 3],
         [() => { const p = R([[10, 15], [12, 18], [20, 30], [6, 9], [15, 20], [8, 12]]); const t = p[0] * p[1] / (p[1] - p[0]); return mk(`A pipe fills a tank in ${p[0]} hours and another pipe empties it in ${p[1]} hours. If both are open, how long to fill the tank?`, t + " hours", `Net rate = 1/${p[0]} − 1/${p[1]}. Time = ${t} hours.`, "Subtract the emptying rate from the filling rate.", [(p[0] + p[1]) + " hours", num(t / 2) + " hours", num(t + 10) + " hours"]); }, 4],
-        [() => { const p = R([[12, 18, 4], [20, 30, 5], [30, 45, 6], [10, 15, 2]]); const rem = 1 - p[2] / p[0], rate = 1 / p[0] + 1 / p[1]; const t = num(rem / rate); return mk(`A can finish a job in ${p[0]} days and B in ${p[1]} days. A works alone for ${p[2]} days, then B joins. How many more days to finish?`, t + " days", `A does ${p[2]}/${p[0]}. Remaining ${num(rem)} ÷ combined rate = ${t} days.`, "Find the remaining work first.", [num(t + 1) + " days", num(t - 1) + " days", num(t + 2.5) + " days"]); }, 5]
+        [() => { const p = R([[12, 18, 4], [20, 30, 5], [30, 45, 6], [10, 15, 2]]); const rem = 1 - p[2] / p[0], rate = 1 / p[0] + 1 / p[1]; const t = num(rem / rate); return mk(`A can finish a job in ${p[0]} days and B in ${p[1]} days. A works alone for ${p[2]} days, then B joins. How many more days to finish?`, t + " days", `A does ${p[2]}/${p[0]}. Remaining ${num(rem)} ÷ combined rate = ${t} days.`, "Find how much A finishes alone first, then see what is left for both.", [num(t + 1) + " days", num(t - 1) + " days", num(t + 2.5) + " days"]); }, 5]
     ]
 };
 
@@ -3992,16 +4021,16 @@ const SPEED = {
     kid: (b, l) => {
         const s = r(2, 5 + l), t = r(2, 5);
         return b === 0 || r(0, 1)
-            ? mk(`A boy walks ${s} km every day. How far does he walk in ${t} days?`, `${s * t} km`, `${s} × ${t} = ${s * t}.`, "Multiply distance per day by days.")
+            ? mk(`A boy walks ${s} km every day. How far does he walk in ${t} days?`, `${s * t} km`, `${s} × ${t} = ${s * t}.`, "Same distance each day: think multiplication.")
             : mk(`A bus goes ${s * 10} km in 1 hour. How far will it go in ${t} hours?`, `${s * 10 * t} km`, `${s * 10} × ${t} = ${s * 10 * t}.`, "Distance = speed × time.", [`${s * 10 * t + 10} km`, `${s * 10 * t - 10} km`, `${s * 10 + t} km`]);
     },
     list: [
         [() => { const s = r(20, 90), t = r(2, 6); return mk(`A car moves at ${s} km/h for ${t} hours. How far does it travel?`, `${s * t} km`, `Distance = ${s} × ${t}.`, "Distance = speed × time.", [`${s * t + 10} km`, `${s * t - 10} km`, `${s + t} km`]); }, 2],
         [() => { const t = r(2, 6), s = r(3, 20) * 5, d = s * t; return mk(`A train covers ${d} km in ${t} hours. What is its speed?`, `${s} km/h`, `${d} ÷ ${t} = ${s}.`, "Speed = distance ÷ time.", [`${s + 10} km/h`, `${s - 5} km/h`, `${s + 20} km/h`]); }, 2],
         [() => { const k = r(2, 8); return mk(`Convert ${18 * k} km/h into m/s.`, `${5 * k} m/s`, `Multiply by 5/18: ${18 * k} × 5/18 = ${5 * k}.`, "km/h to m/s: multiply by 5/18.", [`${18 * k} m/s`, `${5 * k + 2} m/s`, `${10 * k} m/s`]); }, 3],
-        [() => { const p = R([[30, 60, 40], [40, 60, 48], [20, 30, 24], [60, 90, 72], [40, 120, 60]]); return mk(`A person goes from A to B at ${p[0]} km/h and returns at ${p[1]} km/h. What is the average speed for the whole trip?`, `${p[2]} km/h`, `2ab/(a+b) = 2×${p[0]}×${p[1]}/${p[0] + p[1]} = ${p[2]}.`, "Do not simply average the two speeds.", [`${(p[0] + p[1]) / 2} km/h`, `${p[2] + 4} km/h`, `${p[2] - 4} km/h`]); }, 3],
-        [() => { const a = r(30, 70), c = r(20, 60), t = r(2, 5); return mk(`Two cars start ${(a + c) * t} km apart and move towards each other at ${a} km/h and ${c} km/h. When will they meet?`, `${t} hours`, `Relative speed = ${a + c}. Time = ${(a + c) * t}/${a + c} = ${t}.`, "Speeds add when moving towards each other.", [`${t + 1} hours`, `${t + 2} hours`, `${Math.max(1, t - 1)} hours`]); }, 3],
-        [() => { const v = r(8, 30), t = r(6, 20), L = r(80, 200); const P = v * t - L; return mk(`A train ${L} m long crosses a platform ${P} m long in ${t} seconds. What is its speed?`, `${v} m/s`, `Total distance = ${L} + ${P} = ${v * t}. Speed = ${v * t}/${t}.`, "Distance covered = train + platform.", [`${v + 3} m/s`, `${v - 2} m/s`, `${v + 6} m/s`]); }, 4],
+        [() => { const p = R([[30, 60, 40], [40, 60, 48], [20, 30, 24], [60, 90, 72], [40, 120, 60]]); return mk(`A person goes from A to B at ${p[0]} km/h and returns at ${p[1]} km/h. What is the average speed for the whole trip?`, `${p[2]} km/h`, `2ab/(a+b) = 2×${p[0]}×${p[1]}/${p[0] + p[1]} = ${p[2]}.`, "The distance is the same both ways, so don't just average the speeds. Try 2ab ÷ (a + b).", [`${(p[0] + p[1]) / 2} km/h`, `${p[2] + 4} km/h`, `${p[2] - 4} km/h`]); }, 3],
+        [() => { const a = r(30, 70), c = r(20, 60), t = r(2, 5); return mk(`Two cars start ${(a + c) * t} km apart and move towards each other at ${a} km/h and ${c} km/h. When will they meet?`, `${t} hours`, `Relative speed = ${a + c}. Time = ${(a + c) * t}/${a + c} = ${t}.`, "Moving towards each other means their speeds add. Then time = distance ÷ speed.", [`${t + 1} hours`, `${t + 2} hours`, `${Math.max(1, t - 1)} hours`]); }, 3],
+        [() => { const v = r(8, 30), L = r(80, 200), t0 = Math.ceil((L + 20) / v), t = r(t0, t0 + 8); const P = v * t - L; return mk(`A train ${L} m long crosses a platform ${P} m long in ${t} seconds. What is its speed?`, `${v} m/s`, `Total distance = ${L} + ${P} = ${v * t}. Speed = ${v * t}/${t}.`, "Distance covered = train + platform.", [`${v + 3} m/s`, `${v - 2} m/s`, `${v + 6} m/s`]); }, 4],
         [() => { const bb = r(8, 20), s = r(2, 6); return mk(`A boat goes ${bb + s} km/h downstream and ${bb - s} km/h upstream. What is the speed of the stream?`, `${s} km/h`, `Stream = (down − up)/2 = ${s}.`, "Stream speed = half the difference.", [`${bb} km/h`, `${s + 2} km/h`, `${bb - s} km/h`]); }, 4],
         [() => { const k = r(2, 6), T = r(6, 15); const sv = 18 * k, tot = 5 * k * T; return mk(`Two trains of total length ${tot} m run in opposite directions at a combined speed of ${sv} km/h. How long do they take to cross each other completely?`, `${T} seconds`, `${sv} km/h = ${5 * k} m/s. Time = ${tot}/${5 * k} = ${T}.`, "Convert to m/s and add the lengths.", [`${T + 2} seconds`, `${T * 2} seconds`, `${T - 1} seconds`]); }, 5]
     ]
@@ -4011,15 +4040,15 @@ const SPEED = {
 const RATIO = {
     kid: (b, l) => {
         const c = r(2, 4 + l), k = r(2, 5);
-        return mk(`Each child gets ${k} sweets. There are ${c} children. How many sweets are needed?`, k * c, `${k} × ${c} = ${k * c}.`, "Multiply sweets per child by children.");
+        return mk(`Each child gets ${k} sweets. There are ${c} children. How many sweets are needed?`, k * c, `${k} × ${c} = ${k * c}.`, "Same number for each child: think multiplication.");
     },
     list: [
         [() => { const a = r(2, 8), bb = r(3, 10), m = r(2, 12); return mk(`A : B = ${a} : ${bb}. If A = ${a * m}, what is B?`, bb * m, `One part = ${m}. B = ${bb} × ${m}.`, "Find the value of one part first."); }, 2],
-        [() => { const p = R([[2, 3], [3, 4], [2, 5], [4, 5], [3, 7]]); const t = (p[0] + p[1]) * r(20, 90); return mk(`Divide ${rs(t)} in the ratio ${p[0]} : ${p[1]}. What is the larger share?`, rs(t / (p[0] + p[1]) * p[1]), `One part = ${t / (p[0] + p[1])}. Larger = ${p[1]} parts.`, "Add the ratio parts to get the total number of parts."); }, 2],
-        [() => { const x = r(3, 9), y = r(x + 1, x + 6), k = r(5, 25); return mk(`Two numbers are in the ratio ${x} : ${y} and their sum is ${(x + y) * k}. Find the larger number.`, y * k, `One part = ${k}. Larger = ${y} × ${k}.`, "Sum of parts = " + (x + y) + "."); }, 3],
+        [() => { const p = R([[2, 3], [3, 4], [2, 5], [4, 5], [3, 7]]); const t = (p[0] + p[1]) * r(20, 90); return mk(`Divide ${rs(t)} in the ratio ${p[0]} : ${p[1]}. What is the larger share?`, rs(t / (p[0] + p[1]) * p[1]), `One part = ${t / (p[0] + p[1])}. Larger = ${p[1]} parts.`, "Add the ratio parts to get the total parts, find one part, then pick the larger share."); }, 2],
+        [() => { const x = r(3, 9), y = r(x + 1, x + 6), k = r(5, 25); return mk(`Two numbers are in the ratio ${x} : ${y} and their sum is ${(x + y) * k}. Find the larger number.`, y * k, `One part = ${k}. Larger = ${y} × ${k}.`, "Add the ratio parts, find 1 part from the sum, then pick the larger number."); }, 3],
         [() => { const a = R([2, 3, 4, 5]), bb = R([3, 4, 5, 7]), c = R([2, 5, 9, 4]), d = R([3, 7, 8]); const n = a * c, m = bb * d, g = gcd(n, m); return mk(`If A : B = ${a} : ${bb} and B : C = ${c} : ${d}, find A : C.`, `${n / g} : ${m / g}`, `A:C = (${a}×${c}) : (${bb}×${d}) = ${n} : ${m}.`, "Multiply the first terms and the last terms.", [`${m / g} : ${n / g}`, `${a} : ${d}`, `${n / g + 1} : ${m / g}`]); }, 4],
-        [() => { const m = r(2, 6) * 3, w = m / 3 * 2; return mk(`A mixture of milk and water is in the ratio 3 : 2 and its volume is ${m + w} litres. How much water must be added to make the ratio 3 : 4?`, `${(m / 3 * 2)} litres`, `Milk = ${m}. For 3:4, water = ${m / 3 * 4}. Add ${m / 3 * 4} − ${w} = ${m / 3 * 2}.`, "Milk stays constant.", [`${m / 3} litres`, `${m} litres`, `${m / 3 * 4} litres`]); }, 5],
-        [() => { const p = R([[3, 5], [4, 7], [5, 6]]); const k = r(2, 6); const s = k * (p[0] + p[1]) + 2 * (p[0] + p[1]) + 0; return mk(`The ages of two brothers are in the ratio ${p[0]} : ${p[1]}. The sum of their ages is ${k * (p[0] + p[1])}. What is the age of the elder brother?`, p[1] * k, `One part = ${k}. Elder = ${p[1]} × ${k}.`, "Age ratio parts add up to the total."); }, 4]
+        [() => { const m = r(2, 6) * 3, w = m / 3 * 2; return mk(`A mixture of milk and water is in the ratio 3 : 2 and its volume is ${m + w} litres. How much water must be added to make the ratio 3 : 4?`, `${(m / 3 * 2)} litres`, `Milk = ${m}. For 3:4, water = ${m / 3 * 4}. Add ${m / 3 * 4} − ${w} = ${m / 3 * 2}.`, "The quantity of milk doesn't change. Find it first, then work out the water needed for the new ratio.", [`${m / 3} litres`, `${m} litres`, `${m / 3 * 4} litres`]); }, 5],
+        [() => { const p = R([[3, 5], [4, 7], [5, 6]]); const k = r(2, 6); const s = k * (p[0] + p[1]) + 2 * (p[0] + p[1]) + 0; return mk(`The ages of two brothers are in the ratio ${p[0]} : ${p[1]}. The sum of their ages is ${k * (p[0] + p[1])}. What is the age of the elder brother?`, p[1] * k, `One part = ${k}. Elder = ${p[1]} × ${k}.`, "Add the ratio parts, find 1 part from the total, then pick the elder's share."); }, 4]
     ]
 };
 
@@ -4028,16 +4057,16 @@ const PROBABILITY = {
     kid: (b, l) => {
         const x = r(1, 6), y = r(7, 12);
         if (b === 0 || r(0, 1)) return mk(`A bag has ${x} red balls and ${y} blue balls. Which colour are you more likely to pick?`, "Blue", `There are more blue balls (${y}) than red (${x}).`, "The colour with more balls is more likely.", ["Red", "Both equally", "Green"]);
-        return mk(`A die is rolled once. How many possible outcomes are there?`, 6, "A die has faces 1 to 6.", "Count the faces.", [4, 8, 12]);
+        return mk(`A die is rolled once. How many possible outcomes are there?`, 6, "A die has faces 1 to 6.", "Think of a normal die. How many faces does it have? Each face is one outcome.", [4, 8, 12]);
     },
     list: [
-        [() => { const k = r(1, 5); return mk(`A die is rolled. What is the probability of getting a number greater than ${k}?`, fr(6 - k, 6), `Favourable outcomes = ${6 - k} out of 6.`, "Count the numbers larger than " + k + ".", fw(6 - k, 6)); }, 2],
-        [() => { const R1 = r(2, 9), B = r(2, 9), G = r(1, 6), T = R1 + B + G; return mk(`A bag has ${R1} red, ${B} blue and ${G} green balls. One ball is drawn at random. What is the probability that it is NOT green?`, fr(T - G, T), `Not green = ${T - G} of ${T}.`, "P(not A) = 1 − P(A).", fw(T - G, T)); }, 2],
-        [() => { const c = R([["a king", 4], ["a heart", 13], ["a red card", 26], ["a face card", 12], ["the ace of spades", 1], ["a spade or a heart", 26]]); return mk(`One card is drawn from a well-shuffled pack of 52. What is the probability of getting ${c[0]}?`, fr(c[1], 52), `${c[1]} favourable cards out of 52.`, "A pack has 52 cards.", fw(c[1], 52)); }, 3],
-        [() => { const c = R([["exactly one head", 2], ["at least one head", 3], ["two heads", 1], ["no head", 1]]); return mk(`Two fair coins are tossed. What is the probability of getting ${c[0]}?`, fr(c[1], 4), `Outcomes: HH, HT, TH, TT. Favourable = ${c[1]}.`, "List all 4 outcomes.", fw(c[1], 4)); }, 3],
-        [() => { const s = r(3, 11), w = 6 - Math.abs(s - 7); return mk(`Two dice are rolled. What is the probability that the sum is ${s}?`, fr(w, 36), `${w} pairs out of 36 give a sum of ${s}.`, "There are 36 outcomes in total.", fw(w, 36)); }, 4],
-        [() => { const c = R([["at least two heads", 4], ["exactly two heads", 3], ["all the same", 2], ["exactly one tail", 3]]); return mk(`Three fair coins are tossed. What is the probability of getting ${c[0]}?`, fr(c[1], 8), `Favourable = ${c[1]} of 8.`, "There are 8 outcomes.", fw(c[1], 8)); }, 4],
-        [() => { const Rd = r(3, 7), T = Rd + r(2, 6); return mk(`A bag has ${Rd} red and ${T - Rd} blue balls. Two balls are drawn one after another without replacement. What is the probability that both are red?`, fr(Rd * (Rd - 1), T * (T - 1)), `(${Rd}/${T}) × (${Rd - 1}/${T - 1}).`, "After the first draw, the total reduces by one.", fw(Rd * (Rd - 1), T * (T - 1))); }, 5]
+        [() => { const k = r(1, 5); return mk(`A die is rolled. What is the probability of getting a number greater than ${k}?`, fr(6 - k, 6), `Favourable outcomes = ${6 - k} out of 6.`, "Count the favourable numbers on the die, then divide by 6.", fw(6 - k, 6)); }, 2],
+        [() => { const R1 = r(2, 9), B = r(2, 9), G = r(1, 6), T = R1 + B + G; return mk(`A bag has ${R1} red, ${B} blue and ${G} green balls. One ball is drawn at random. What is the probability that it is NOT green?`, fr(T - G, T), `Not green = ${T - G} of ${T}.`, "Count the balls that are not green, or use 1 − P(green).", fw(T - G, T)); }, 2],
+        [() => { const c = R([["a king", 4], ["a heart", 13], ["a red card", 26], ["a face card", 12], ["the ace of spades", 1], ["a spade or a heart", 26]]); return mk(`One card is drawn from a well-shuffled pack of 52. What is the probability of getting ${c[0]}?`, fr(c[1], 52), `${c[1]} favourable cards out of 52.`, "A pack has 52 cards. Count the favourable ones first.", fw(c[1], 52)); }, 3],
+        [() => { const c = R([["exactly one head", 2], ["at least one head", 3], ["two heads", 1], ["no head", 1]]); return mk(`Two fair coins are tossed. What is the probability of getting ${c[0]}?`, fr(c[1], 4), `Outcomes: HH, HT, TH, TT. Favourable = ${c[1]}.`, "List all the possible outcomes first, then count the favourable ones.", fw(c[1], 4)); }, 3],
+        [() => { const s = r(3, 11), w = 6 - Math.abs(s - 7); return mk(`Two dice are rolled. What is the probability that the sum is ${s}?`, fr(w, 36), `${w} pairs out of 36 give a sum of ${s}.`, "List the pairs that give this sum. Total outcomes = 36.", fw(w, 36)); }, 4],
+        [() => { const c = R([["at least two heads", 4], ["exactly two heads", 3], ["all the same", 2], ["exactly one tail", 3]]); return mk(`Three fair coins are tossed. What is the probability of getting ${c[0]}?`, fr(c[1], 8), `Favourable = ${c[1]} of 8.`, "Three coins have 8 outcomes in all. List them and count the favourable ones.", fw(c[1], 8)); }, 4],
+        [() => { const Rd = r(3, 7), T = Rd + r(2, 6); return mk(`A bag has ${Rd} red and ${T - Rd} blue balls. Two balls are drawn one after another without replacement. What is the probability that both are red?`, fr(Rd * (Rd - 1), T * (T - 1)), `(${Rd}/${T}) × (${Rd - 1}/${T - 1}).`, "After the first red is drawn, both the red count and the total go down by one.", fw(Rd * (Rd - 1), T * (T - 1))); }, 5]
     ]
 };
 
@@ -4048,13 +4077,13 @@ const AVERAGE = {
         const m = r(4, 10 + l); return mk(`Find the average of ${m - 2}, ${m} and ${m + 2}.`, m, `Sum = ${3 * m}. ${3 * m} ÷ 3 = ${m}.`, "Add all and divide by how many numbers.");
     },
     list: [
-        [() => { const n = r(4, 6), m = r(12, 40); const xs = []; let s = 0; for (let i = 0; i < n - 1; i++) { const v = m + r(-8, 8); xs.push(v); s += v; } const last = m * n - s; xs.push(last); return mk(`Find the average of ${xs.join(", ")}.`, m, `Sum = ${m * n}. ${m * n} ÷ ${n} = ${m}.`, "Average = sum ÷ count."); }, 2],
+        [() => { const n = r(4, 6), m = r(12, 40); let xs, last; do { xs = []; let s = 0; for (let i = 0; i < n - 1; i++) { const v = m + r(-8, 8); xs.push(v); s += v; } last = m * n - s; } while (last < 1); xs.push(last); return mk(`Find the average of ${xs.join(", ")}.`, m, `Sum = ${m * n}. ${m * n} ÷ ${n} = ${m}.`, "Average = sum ÷ count."); }, 2],
         [() => { const n = r(5, 12), a = r(10, 60); return mk(`The average of ${n} numbers is ${a}. What is their total?`, n * a, `${a} × ${n} = ${n * a}.`, "Total = average × count."); }, 2],
-        [() => { const n = R([5, 7, 9, 11, 15]); const t = R([["first n odd numbers", n], ["first n natural numbers", (n + 1) / 2], ["first n even numbers", n + 1]]); return mk(`What is the average of the ${t[0].replace("n", n)}?`, t[1], `Use the standard formula for the ${t[0]}.`, "Try small values of n to find the pattern."); }, 3],
-        [() => { const n = r(5, 12), a = r(20, 45), k = r(1, 4); return mk(`The average of ${n} students' marks is ${a}. When a new student joins, the average becomes ${a + k}. What did the new student score?`, a + k * (n + 1), `New total − old total = ${(a + k) * (n + 1)} − ${a * n}.`, "Compare the old and new totals."); }, 3],
-        [() => { const a = r(20, 40), m = a + r(1, 4); return mk(`The average of 5 numbers is ${a}. When one number ${5 * a - 4 * m} is removed, what is the average of the remaining 4?`, m, `Remaining sum = ${5 * a} − ${5 * a - 4 * m} = ${4 * m}. Average = ${m}.`, "Find the total first, then subtract."); }, 3],
-        [() => { let a1, a2; do { a1 = r(30, 80); a2 = r(30, 80); } while ((2 * a1 + 3 * a2) % 5); const t = (2 * a1 + 3 * a2) / 5; return mk(`Section A has 20 students with an average of ${a1}. Section B has 30 students with an average of ${a2}. What is the combined average?`, t, `(20×${a1} + 30×${a2}) ÷ 50 = ${t}.`, "Use total marks ÷ total students.", [num((a1 + a2) / 2), t + 2, t - 2]); }, 4],
-        [() => { const n = r(8, 14), a = r(30, 50), k = r(1, 3); return mk(`A batsman's average after ${n} innings is ${a}. How many runs must he score in the next innings to raise the average by ${k}?`, a + k * (n + 1), `Required = ${a} + ${k} × ${n + 1}.`, "New average × (n+1) − old total."); }, 5]
+        [() => { const n = R([5, 7, 9, 11, 15]); const t = R([["first n odd numbers", n], ["first n natural numbers", (n + 1) / 2], ["first n even numbers", n + 1]]); return mk(`What is the average of the ${t[0].replace("n", n)}?`, t[1], `Use the standard formula for the ${t[0]}.`, "Try a small value like n = 3 and look for the pattern."); }, 3],
+        [() => { const n = r(5, 12), a = r(20, 45), k = r(1, 4); return mk(`The average of ${n} students' marks is ${a}. When a new student joins, the average becomes ${a + k}. What did the new student score?`, a + k * (n + 1), `New total − old total = ${(a + k) * (n + 1)} − ${a * n}.`, "Find the total before and after. The difference is the new student's score."); }, 3],
+        [() => { const a = r(20, 40), m = a + r(1, 4); return mk(`The average of 5 numbers is ${a}. When one number ${5 * a - 4 * m} is removed, what is the average of the remaining 4?`, m, `Remaining sum = ${5 * a} − ${5 * a - 4 * m} = ${4 * m}. Average = ${m}.`, "Find the total of all 5 first, then take away the removed number."); }, 3],
+        [() => { let a1, a2; do { a1 = r(30, 80); a2 = r(30, 80); } while ((2 * a1 + 3 * a2) % 5); const t = (2 * a1 + 3 * a2) / 5; return mk(`Section A has 20 students with an average of ${a1}. Section B has 30 students with an average of ${a2}. What is the combined average?`, t, `(20×${a1} + 30×${a2}) ÷ 50 = ${t}.`, "Find each section's total marks, add them, then divide by all the students.", [num((a1 + a2) / 2), t + 2, t - 2]); }, 4],
+        [() => { const n = r(8, 14), a = r(30, 50), k = r(1, 3); return mk(`A batsman's average after ${n} innings is ${a}. How many runs must he score in the next innings to raise the average by ${k}?`, a + k * (n + 1), `Required = ${a} + ${k} × ${n + 1}.`, "Find the total needed for the new average, then subtract the runs scored so far."); }, 5]
     ]
 };
 
@@ -4063,23 +4092,23 @@ const shiftWord = (w, k) => w.split("").map(c => String.fromCharCode((c.charCode
 const LOGICAL = {
     kid: (b, l) => {
         const t = r(0, 2);
-        if (t === 0) { const a = R(["🔴", "🟢", "🔵", "🟡"]), c = R(["⭐", "🌙", "☀️"]); return mk(`What comes next? ${a} ${c} ${a} ${c} ${a} ?`, c, "The two shapes take turns.", "Look at the pattern.", [a, "⬛", "🔺"]); }
+        if (t === 0) { const a = R(["🔴", "🟢", "🔵", "🟡"]), c = R(["⭐", "🌙", "☀️"]); return mk(`What comes next? ${a} ${c} ${a} ${c} ${a} ?`, c, "The two shapes take turns.", "Look at the two shapes. They repeat in the same order. Which one comes after the last shape?", [a, "⬛", "🔺"]); }
         if (t === 1) { const s = r(1, 5), d = r(1, b ? 5 : 3), x = [0, 1, 2, 3].map(i => s + i * d); return mk(`Find the next number: ${x.join(", ")}, ?`, s + 4 * d, `Add ${d} each time.`, "How much does it go up each time?"); }
         const z = R([["Dog", "Cat", "Cow", "Car"], ["Apple", "Mango", "Banana", "Chair"], ["Red", "Blue", "Green", "Table"], ["Pen", "Pencil", "Eraser", "Shoe"]]);
-        return mk(`Which one is the odd one out? ${shuffle(z).join(", ")}`, z[3], `${z[3]} does not belong with the others.`, "Which one is different from the rest?", z.slice(0, 3));
+        return mk(`Which one is the odd one out? ${shuffle(z).join(", ")}`, z[3], `${z[3]} does not belong with the others.`, `Three of these are ${{ Dog: "animals", Apple: "fruits", Red: "colours", Pen: "stationery items" }[z[0]]}. Which one is not?`, z.slice(0, 3));
     },
     list: [
-        [() => { const s = r(2, 30), d = r(2, 9), x = [0, 1, 2, 3, 4].map(i => s + i * d); return mk(`Find the next number: ${x.join(", ")}, ?`, s + 5 * d, `Add ${d} each time.`, "Find the common difference."); }, 2],
-        [() => { const s = r(2, 6), m = R([2, 3]), x = [0, 1, 2, 3].map(i => s * m ** i); return mk(`Find the next number: ${x.join(", ")}, ?`, s * m ** 4, `Multiply by ${m} each time.`, "Check the ratio between the terms."); }, 2],
-        [() => { const w = R(["CAT", "DOG", "PEN", "SUN", "BOOK", "TREE", "MILK"]), k = r(1, 3), w2 = R(["RAIN", "FISH", "LAMP", "SHIP"]); return mk(`If ${w} is coded as ${shiftWord(w, k)}, how is ${w2} coded?`, shiftWord(w2, k), `Each letter moves ${k} step(s) forward.`, "Compare the first letters.", [shiftWord(w2, k + 1), shiftWord(w2, k - 1 + 26), shiftWord(w2, k + 2)]); }, 3],
-        [() => { const d = R([3, 4, 5, 6, 7, 9]), a = [1, 2, 3, 4, 5, 6, 7].map(i => d * i); const three = shuffle(a).slice(0, 3); const odd = d * r(8, 12) + r(1, d - 1); return mk(`Find the odd one out: ${shuffle([...three, odd]).join(", ")}`, odd, `The others are multiples of ${d}.`, "Look for a common property.", three.map(String)); }, 3],
-        [() => { const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], i = r(0, 6), n = r(10, 200); return mk(`Today is ${days[i]}. What day will it be after ${n} days?`, days[(i + n) % 7], `${n} mod 7 = ${n % 7}. Move ${n % 7} day(s) ahead.`, "Days repeat every 7 days.", shuffle(days.filter(x => x !== days[(i + n) % 7])).slice(0, 3)); }, 3],
-        [() => { const k = r(1, 6); return mk(`A man walks ${3 * k} km north, then ${4 * k} km east. How far is he from the starting point?`, `${5 * k} km`, `Distance = √((${3 * k})² + (${4 * k})²) = ${5 * k} km.`, "Use Pythagoras.", [`${7 * k} km`, `${5 * k + 1} km`, `${6 * k} km`]); }, 3],
-        [() => { const p = r(3, 15), q = r(3, 15); return mk(`In a row, Kiran is ${p}th from the left and ${q}th from the right. How many people are in the row?`, p + q - 1, `Total = ${p} + ${q} − 1.`, "Kiran is counted in both positions."); }, 3],
-        [() => { const h = R([2, 3, 4, 5, 7, 8, 9, 10]); const a = Math.min(30 * h, 360 - 30 * h); return mk(`What is the angle between the hour hand and the minute hand at ${h}:00?`, a + "°", `Each hour = 30°. Angle = ${a}°.`, "The hour marks are 30° apart.", [(a + 30) + "°", (a - 30) + "°", (a + 60) + "°"]); }, 4],
-        [() => { const s = r(2, 10), t = r(3, 12); const x = [s, t, s + 2, t + 3, s + 4, t + 6, s + 6]; return mk(`Find the next number: ${x.join(", ")}, ?`, t + 9, `Two series: ${s}, ${s + 2}, ... and ${t}, ${t + 3}, ${t + 6}, ${t + 9}.`, "Look at alternate terms.", [t + 8, s + 8, t + 7]); }, 4],
-        [() => { const q = R([["Pointing to a photograph, Ravi says, “She is the daughter of my father's only son.” Who is she to Ravi?", "Daughter", ["Sister", "Niece", "Mother"]], ["A is the brother of B, B is the sister of C, and C is the father of D. How is A related to D?", "Uncle", ["Father", "Cousin", "Grandfather"]], ["A is B's sister. C is B's mother. D is C's father. How is A related to D?", "Granddaughter", ["Daughter", "Niece", "Grandmother"]]]); return mk(q[0], q[1], "Draw the family tree step by step.", "Sketch the relationships.", q[2]); }, 4],
-        [() => { const q = R([["Statements: All pens are books. All books are tables. Conclusion: All pens are tables.", "Definitely true"], ["Statements: Some doctors are teachers. All teachers are honest. Conclusion: Some doctors are honest.", "Definitely true"], ["Statements: All cats are animals. Some animals are wild. Conclusion: Some cats are wild.", "Cannot be determined"]]); return mk(q[0], q[1], "Draw Venn diagrams for the statements.", "Use a Venn diagram.", ["Definitely true", "Definitely false", "Cannot be determined", "Partly true"].filter(x => x !== q[1])); }, 5]
+        [() => { const s = r(2, 30), d = r(2, 9), x = [0, 1, 2, 3, 4].map(i => s + i * d); return mk(`Find the next number: ${x.join(", ")}, ?`, s + 5 * d, `Add ${d} each time.`, "Find the difference between neighbouring numbers. Is it always the same?"); }, 2],
+        [() => { const s = r(2, 6), m = R([2, 3]), x = [0, 1, 2, 3].map(i => s * m ** i); return mk(`Find the next number: ${x.join(", ")}, ?`, s * m ** 4, `Multiply by ${m} each time.`, "Divide each term by the one before it. Is the multiplier always the same?"); }, 2],
+        [() => { const w = R(["CAT", "DOG", "PEN", "SUN", "BOOK", "TREE", "MILK"]), k = r(1, 3), w2 = R(["RAIN", "FISH", "LAMP", "SHIP"]); return mk(`If ${w} is coded as ${shiftWord(w, k)}, how is ${w2} coded?`, shiftWord(w2, k), `Each letter moves ${k} step(s) forward.`, "See how far the first letter moved, then do the same for every letter.", [shiftWord(w2, k + 1), shiftWord(w2, k - 1 + 26), shiftWord(w2, k + 2)]); }, 3],
+        [() => { const d = R([3, 4, 5, 6, 7, 9]), a = [1, 2, 3, 4, 5, 6, 7].map(i => d * i); const three = shuffle(a).slice(0, 3); const odd = d * r(8, 12) + r(1, d - 1); return mk(`Find the odd one out: ${shuffle([...three, odd]).join(", ")}`, odd, `The others are multiples of ${d}.`, `Check which number is not a multiple of ${d}.`, three.map(String)); }, 3],
+        [() => { const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], i = r(0, 6), n = r(10, 200); return mk(`Today is ${days[i]}. What day will it be after ${n} days?`, days[(i + n) % 7], `${n} mod 7 = ${n % 7}. Move ${n % 7} day(s) ahead.`, "Days repeat every 7. Divide by 7 and look at the remainder.", shuffle(days.filter(x => x !== days[(i + n) % 7])).slice(0, 3)); }, 3],
+        [() => { const k = r(1, 6); return mk(`A man walks ${3 * k} km north, then ${4 * k} km east. How far is he from the starting point?`, `${5 * k} km`, `Distance = √((${3 * k})² + (${4 * k})²) = ${5 * k} km.`, "North and east form a right angle. Think Pythagoras.", [`${7 * k} km`, `${5 * k + 1} km`, `${6 * k} km`]); }, 3],
+        [() => { const p = r(3, 15), q = r(3, 15); return mk(`In a row, Kiran is ${p}th from the left and ${q}th from the right. How many people are in the row?`, p + q - 1, `Total = ${p} + ${q} − 1.`, "Kiran is counted in both numbers. Don't count him twice."); }, 3],
+        [() => { const h = R([2, 3, 4, 5, 7, 8, 9, 10]); const a = Math.min(30 * h, 360 - 30 * h); return mk(`What is the angle between the hour hand and the minute hand at ${h}:00?`, a + "°", `Each hour = 30°. Angle = ${a}°.`, "Each hour mark is 30° apart. Count the marks between the two hands.", [(a + 30) + "°", (a - 30) + "°", (a + 60) + "°"]); }, 4],
+        [() => { const s = r(2, 10), t = r(3, 12); const x = [s, t, s + 2, t + 3, s + 4, t + 6, s + 6]; return mk(`Find the next number: ${x.join(", ")}, ?`, t + 9, `Two series: ${s}, ${s + 2}, ... and ${t}, ${t + 3}, ${t + 6}, ${t + 9}.`, "Two series are mixed together. Look at alternate terms separately.", [t + 8, s + 8, t + 7]); }, 4],
+        [() => { const q = R([["Pointing to a photograph, Ravi says, “She is the daughter of my father's only son.” Who is she to Ravi?", "Daughter", ["Sister", "Niece", "Mother"], "Start with \"my father's only son\". Who could that be?"], ["A is the brother of B, B is the sister of C, and C is the father of D. How is A related to D?", "Uncle", ["Father", "Cousin", "Grandfather"], "A, B and C are siblings. D is C's child. How is A related to a sibling's child?"], ["A is B's sister. C is B's mother. D is C's father. How is A related to D?", "Granddaughter", ["Daughter", "Niece", "Grandmother"], "Find D's relation to A first, then reverse it."]]); return mk(q[0], q[1], "Draw the family tree step by step.", q[3], q[2]); }, 4],
+        [() => { const q = R([["Statements: All pens are books. All books are tables. Conclusion: All pens are tables.", "Definitely true", "Chain the statements together. Do they link pens to tables?"], ["Statements: Some doctors are teachers. All teachers are honest. Conclusion: Some doctors are honest.", "Definitely true", "Every teacher is honest. What does that say about the doctors who are teachers?"], ["Statements: All cats are animals. Some animals are wild. Conclusion: Some cats are wild.", "Cannot be determined", "Draw circles for cats, animals and wild. Must the wild animals include cats?"]]); return mk(q[0], q[1], "Draw Venn diagrams for the statements.", q[2], ["Definitely true", "Definitely false", "Cannot be determined", "Partly true"].filter(x => x !== q[1])); }, 5]
     ]
 };
 
@@ -4160,16 +4189,69 @@ function getPlayerId() {
 }
 const FS_URL = "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+/*
+   The Firebase setup lives in a deferred <script type="module">, so on a slow
+   connection the globals may not exist yet when the player acts. Wait briefly
+   instead of declaring Firebase unavailable.
+*/
+function waitForFirebase(timeoutMs) {
+
+    return new Promise(resolve => {
+
+        if (window.firebaseDB) {
+            resolve(true);
+            return;
+        }
+
+        const started = Date.now();
+
+        const timer = setInterval(() => {
+
+            if (window.firebaseDB) {
+                clearInterval(timer);
+                resolve(true);
+            } else if (Date.now() - started > timeoutMs) {
+                clearInterval(timer);
+                resolve(false);
+            }
+        }, 100);
+    });
+}
+
+
+function noteSaveProblem() {
+
+    const el = byId("resultMessage");
+
+    if (!el) {
+        return;
+    }
+
+    const note =
+        " The leaderboard is offline right now, so this score was not saved online.";
+
+    if (!el.textContent.includes("not saved online")) {
+        el.textContent += note;
+    }
+}
+
+
 saveScore = async function (points) {
     try {
-        if (!window.firebaseDB) return;
+        if (!await waitForFirebase(4000)) {
+            noteSaveProblem();
+            return;
+        }
         const fs = await import(FS_URL);
         await fs.setDoc(fs.doc(window.firebaseDB, "leaderboard", getPlayerId()), {
             name: currentPlayer.name, age: currentPlayer.age, ageGroup: getAgeGroup(currentPlayer.age),
             totalPoints: fs.increment(points), levelsCleared: fs.increment(1),
             lastTopic: currentTopic, updatedAt: Date.now()
         }, { merge: true });
-    } catch (e) { console.error("Leaderboard save error:", e); }
+    } catch (e) {
+        console.error("Leaderboard save error:", e);
+        noteSaveProblem();
+    }
 };
 
 finishLevel = function (passed) {
@@ -4190,7 +4272,7 @@ loadLeaderboard = async function () {
     if (!list) return;
     list.innerHTML = `<p class="loading-text">Loading leaderboard...</p>`;
     try {
-        if (!window.firebaseDB) { list.innerHTML = `<p class="loading-text">Leaderboard is not available right now.</p>`; return; }
+        if (!await waitForFirebase(4000)) { list.innerHTML = `<p class="loading-text">Leaderboard is not available right now.</p>`; return; }
         const fs = await import(FS_URL);
         const snap = await fs.getDocs(fs.query(fs.collection(window.firebaseDB, "leaderboard"), fs.orderBy("totalPoints", "desc"), fs.limit(50)));
         if (snap.empty) { list.innerHTML = `<p class="loading-text">No scores yet. Be the first!</p>`; return; }
@@ -4222,15 +4304,15 @@ window.showLeaderboard = showLeaderboard;
 /* ---------- 2. INTERVIEW BANK: [question, answer, wrongs, explanation, hint] ---------- */
 const IVQ = {
     numbers: [
-        ["What is the remainder when 2^10 is divided by 7?", "2", ["1", "3", "4"], "2^3 = 8 leaves remainder 1, so 2^10 = (2^3)^3 × 2 leaves remainder 2.", "Find the pattern of remainders of powers of 2."],
-        ["How many prime numbers are there between 1 and 30?", "10", ["9", "11", "8"], "2, 3, 5, 7, 11, 13, 17, 19, 23, 29 → 10 primes.", "1 is not prime; 2 is the only even prime."]
+        ["What is the remainder when 2^10 is divided by 7?", "2", ["1", "3", "4"], "2^3 = 8 leaves remainder 1, so 2^10 = (2^3)^3 × 2 leaves remainder 2.", "Write the first few powers of 2 and their remainders. Look for a repeating pattern."],
+        ["How many prime numbers are there between 1 and 30?", "10", ["9", "11", "8"], "2, 3, 5, 7, 11, 13, 17, 19, 23, 29 → 10 primes.", "Strike out the multiples of 2, 3 and 5 (keep those numbers themselves). 1 is not prime."]
     ],
     logical: [
-        ["A is taller than B, B is taller than C, and D is shorter than C. Who is the tallest?", "A", ["B", "C", "D"], "Order: A > B > C > D.", "Arrange them in a line from tallest to shortest."],
+        ["A is taller than B, B is taller than C, and D is shorter than C. Who is the tallest?", "A", ["B", "C", "D"], "Order: A > B > C > D.", "Write the comparisons as one chain. Where does D fit?"],
         ["Find the missing number: 3, 8, 15, 24, 35, ?", "48", ["46", "50", "45"], "The terms are n² − 1 for n = 2, 3, 4… so the next is 7² − 1 = 48.", "Add 1 to each term. What do you notice?"]
     ],
     percentage: [
-        ["The price of petrol rises by 25%. By what percent must consumption fall to keep the expenditure the same?", "20%", ["25%", "15%", "30%"], "Take price 100 → 125. Reduction = 25/125 × 100 = 20%.", "The base for the reduction is the new price."]
+        ["The price of petrol rises by 25%. By what percent must consumption fall to keep the expenditure the same?", "20%", ["25%", "15%", "30%"], "Take price 100 → 125. Reduction = 25/125 × 100 = 20%.", "Assume the old price is 100. The reduction is measured against the new price."]
     ],
     profitloss: [
         ["A man buys 12 pens for ₹10 and sells 10 pens for ₹12. What is his profit percent?", "44%", ["20%", "40%", "36%"], "Buy 60 pens for ₹50, sell 60 pens for ₹72. Profit = 22/50 × 100 = 44%.", "Take LCM of 12 and 10 as the number of pens."]
@@ -4242,10 +4324,10 @@ const IVQ = {
         ["A man rows 12 km downstream in 2 hours and 12 km upstream in 3 hours. What is his speed in still water?", "5 km/h", ["4 km/h", "6 km/h", "2 km/h"], "Downstream = 6, upstream = 4. Still water = (6 + 4)/2 = 5 km/h.", "Find both speeds first."]
     ],
     ratio: [
-        ["The ages of A and B are in the ratio 3 : 5. After 6 years the ratio becomes 3 : 4. What is B's present age?", "10 years", ["15 years", "8 years", "12 years"], "(3x + 6)/(5x + 6) = 3/4 → x = 2, so B = 10.", "Let the ages be 3x and 5x."]
+        ["The ages of A and B are in the ratio 3 : 5. After 6 years the ratio becomes 3 : 4. What is B's present age?", "10 years", ["15 years", "8 years", "12 years"], "(3x + 6)/(5x + 6) = 3/4 → x = 2, so B = 10.", "Let the ages be 3x and 5x, then use the ratio after 6 years."]
     ],
     probability: [
-        ["Two dice are thrown. What is the probability that the sum is a prime number?", "5/12", ["1/2", "1/3", "7/12"], "Prime sums 2, 3, 5, 7, 11 occur 1 + 2 + 4 + 6 + 2 = 15 ways. 15/36 = 5/12.", "List the prime sums possible with two dice."]
+        ["Two dice are thrown. What is the probability that the sum is a prime number?", "5/12", ["1/2", "1/3", "7/12"], "Prime sums 2, 3, 5, 7, 11 occur 1 + 2 + 4 + 6 + 2 = 15 ways. 15/36 = 5/12.", "List the prime sums possible with two dice and count the pairs for each."]
     ],
     average: [
         ["The average of 5 consecutive odd numbers is 21. What is the largest number?", "25", ["23", "27", "29"], "The numbers are 17, 19, 21, 23, 25.", "The average of consecutive numbers is the middle one."]
@@ -4268,7 +4350,7 @@ generateQuestion = function (topicId, age, level) {
     const f = T.list.filter(x => x[1] <= cap), n = f.length, b = band(age);
     const h = Math.min(1, (age - 6) / 14);
     const pos = (h * 0.6 + (level - 1) / 9 * 0.4) * (n - 1);
-    const i = Math.max(0, Math.min(n - 1, Math.round(pos + Math.random() * 2 - 1)));
+    const i = Math.max(0, Math.min(n - 1, Math.round(pos + Math.random() * 5 - 2.5)));
     return f[i][0](b, level, (b + 1) * (1 + level / 4));
 };
 
@@ -4356,4 +4438,892 @@ speakText = function (text) {
         body: JSON.stringify({ text: cleanForSpeech(SAY[text] || text) })
     }).then(res => res.blob()).then(b => { aqAudio = new Audio(URL.createObjectURL(b)); aqAudio.play(); })
         .catch(() => _speak(text));
+};
+
+/* =========================================================
+   APTITUDEQUEST FX LAYER  (appended - premium game feel)
+   Motion, sound, particles, HUD.
+   This section only WRAPS existing functions; no game rule,
+   id, class name or Firebase call is changed or removed.
+========================================================= */
+
+const AQ_MOTION_MQ = window.matchMedia
+    ? window.matchMedia("(prefers-reduced-motion: reduce)")
+    : null;
+
+let aqReduced = !!(AQ_MOTION_MQ && AQ_MOTION_MQ.matches);
+let aqMuted = false;
+let aqStreak = 0;
+let aqLastLevelDone = 0;
+
+try { aqMuted = localStorage.getItem("AQ_muted") === "1"; } catch (e) { aqMuted = false; }
+
+function aqBy(id) { return document.getElementById(id); }
+function aqQ(sel, root) { return (root || document).querySelector(sel); }
+function aqAll(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+function aqRetrigger(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+}
+
+function aqIndex(root, sel) {
+    aqAll(sel, root).forEach(function (el, i) { el.style.setProperty("--aq-i", i); });
+}
+
+
+/* ---------- 1. SOUND (Web Audio, no assets) ---------- */
+
+let aqActx = null;
+
+function aqCtx() {
+    if (aqMuted) return null;
+    try {
+        if (!aqActx) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            aqActx = new AC();
+        }
+        if (aqActx.state === "suspended") aqActx.resume();
+        return aqActx;
+    } catch (e) { return null; }
+}
+
+function aqTone(o) {
+    const c = aqCtx();
+    if (!c) return;
+    try {
+        const t = c.currentTime + (o.delay || 0);
+        const osc = c.createOscillator();
+        const g = c.createGain();
+        osc.type = o.type || "sine";
+        osc.frequency.setValueAtTime(o.f, t);
+        if (o.f2) osc.frequency.exponentialRampToValueAtTime(Math.max(30, o.f2), t + o.d);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(o.v || 0.15, t + 0.014);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + o.d);
+        osc.connect(g);
+        g.connect(c.destination);
+        osc.start(t);
+        osc.stop(t + o.d + 0.03);
+    } catch (e) { /* audio is optional */ }
+}
+
+const AQ_SFX = {
+    click: function () { aqTone({ f: 540, f2: 720, d: 0.07, type: "triangle", v: 0.1 }); },
+    deny: function () { aqTone({ f: 160, f2: 110, d: 0.13, type: "square", v: 0.07 }); },
+    correct: function () {
+        aqTone({ f: 660, d: 0.1, type: "triangle", v: 0.15 });
+        aqTone({ f: 880, d: 0.12, type: "triangle", v: 0.13, delay: 0.08 });
+        aqTone({ f: 1320, d: 0.2, type: "sine", v: 0.11, delay: 0.16 });
+    },
+    wrong: function () {
+        aqTone({ f: 240, f2: 100, d: 0.3, type: "sawtooth", v: 0.12 });
+        aqTone({ f: 120, d: 0.22, type: "square", v: 0.06, delay: 0.02 });
+    },
+    star: function () { aqTone({ f: 1180, f2: 1560, d: 0.1, type: "sine", v: 0.09 }); },
+    unlock: function () { aqTone({ f: 420, f2: 940, d: 0.32, type: "sine", v: 0.13 }); },
+    complete: function () {
+        [523, 659, 784, 1046, 1318].forEach(function (f, i) {
+            aqTone({ f: f, d: 0.24, type: "triangle", v: 0.14, delay: i * 0.1 });
+        });
+    },
+    fail: function () {
+        [392, 330, 262].forEach(function (f, i) {
+            aqTone({ f: f, d: 0.3, type: "sine", v: 0.12, delay: i * 0.14 });
+        });
+    }
+};
+
+function aqSfx(name) {
+    if (aqMuted) return;
+    try { if (AQ_SFX[name]) AQ_SFX[name](); } catch (e) { /* ignore */ }
+}
+
+function aqVibe(pattern) {
+    if (aqMuted) return;
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* not supported */ }
+}
+
+function aqSyncSoundBtn() {
+    const b = aqBy("aqSoundBtn");
+    if (!b) return;
+    b.setAttribute("aria-pressed", String(aqMuted));
+    b.textContent = aqMuted ? "🔇" : "🔊";
+}
+
+
+/* ---------- 2. CANVAS PARTICLES ---------- */
+
+const aqCanvas = aqBy("aqFxCanvas");
+const aqG = aqCanvas && aqCanvas.getContext ? aqCanvas.getContext("2d") : null;
+let aqParts = [];
+let aqRaf = 0;
+const AQ_COLORS = ["#ffd166", "#ff6b8a", "#4ee69a", "#38bdf8", "#a78bfa", "#ffffff", "#ff9f43"];
+
+function aqResizeCanvas() {
+    if (!aqCanvas || !aqG) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    aqCanvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));
+    aqCanvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+    aqG.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function aqPush(p) {
+    if (!aqG || aqReduced) return;
+    if (aqParts.length > 460) return;
+    aqParts.push(p);
+    aqStartLoop();
+}
+
+function aqStartLoop() {
+    if (aqRaf || !aqG) return;
+    aqRaf = window.requestAnimationFrame(aqTick);
+}
+
+function aqStopLoop() {
+    if (aqRaf) { window.cancelAnimationFrame(aqRaf); aqRaf = 0; }
+    aqParts = [];
+    if (aqG) aqG.clearRect(0, 0, window.innerWidth, window.innerHeight);
+}
+
+function aqTick() {
+    aqRaf = 0;
+    if (!aqG) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    aqG.clearRect(0, 0, W, H);
+
+    for (let i = aqParts.length - 1; i >= 0; i--) {
+        const p = aqParts[i];
+        p.vy += p.g === undefined ? 0.16 : p.g;
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.drag) { p.vx *= p.drag; p.vy *= p.drag; }
+        p.rot = (p.rot || 0) + (p.spin || 0);
+        p.life -= p.decay;
+
+        if (p.k === "rocket") {
+            aqG.globalAlpha = 1;
+            aqG.fillStyle = p.c;
+            aqG.beginPath();
+            aqG.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            aqG.fill();
+            if (p.y <= p.ty || p.vy >= 0) {
+                aqExplode(p.x, p.y, p.c, 34);
+                aqParts.splice(i, 1);
+            }
+            continue;
+        }
+
+        if (p.life <= 0 || p.y > H + 40) { aqParts.splice(i, 1); continue; }
+
+        aqG.globalAlpha = Math.max(0, Math.min(1, p.life));
+        if (p.k === "rect") {
+            aqG.save();
+            aqG.translate(p.x, p.y);
+            aqG.rotate(p.rot);
+            aqG.fillStyle = p.c;
+            aqG.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            aqG.restore();
+        } else {
+            aqG.fillStyle = p.c;
+            aqG.beginPath();
+            aqG.arc(p.x, p.y, Math.max(0.4, p.r * (p.k === "spark" ? p.life : 1)), 0, Math.PI * 2);
+            aqG.fill();
+        }
+    }
+
+    aqG.globalAlpha = 1;
+    if (aqParts.length) aqRaf = window.requestAnimationFrame(aqTick);
+}
+
+function aqExplode(x, y, color, n) {
+    if (aqReduced || !aqG) return;
+    for (let i = 0; i < n; i++) {
+        const a = (Math.PI * 2 * i) / n + Math.random() * 0.3;
+        const sp = 2 + Math.random() * 4.5;
+        aqPush({
+            k: Math.random() < 0.5 ? "spark" : "rect",
+            x: x, y: y,
+            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1,
+            g: 0.12, drag: 0.985,
+            r: 1.6 + Math.random() * 2.2,
+            w: 4 + Math.random() * 4, h: 3 + Math.random() * 5,
+            rot: Math.random() * 6, spin: (Math.random() - 0.5) * 0.3,
+            life: 1, decay: 0.014 + Math.random() * 0.012,
+            c: color || AQ_COLORS[(Math.random() * AQ_COLORS.length) | 0]
+        });
+    }
+}
+
+function aqBurstAt(el, color, n) {
+    if (aqReduced || !aqG || !el) return;
+    const r = el.getBoundingClientRect();
+    aqExplode(r.left + r.width / 2, r.top + r.height / 2, color, n || 24);
+}
+
+function aqConfetti(n) {
+    if (aqReduced || !aqG) return;
+    const W = window.innerWidth;
+    for (let i = 0; i < (n || 120); i++) {
+        aqPush({
+            k: "rect",
+            x: Math.random() * W,
+            y: -20 - Math.random() * window.innerHeight * 0.4,
+            vx: (Math.random() - 0.5) * 2.4,
+            vy: 2 + Math.random() * 3.5,
+            g: 0.045,
+            w: 5 + Math.random() * 6, h: 8 + Math.random() * 8,
+            rot: Math.random() * 6, spin: (Math.random() - 0.5) * 0.28,
+            life: 1, decay: 0.0022,
+            c: AQ_COLORS[(Math.random() * AQ_COLORS.length) | 0]
+        });
+    }
+}
+
+function aqFireworks(rounds) {
+    if (aqReduced || !aqG) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    for (let i = 0; i < (rounds || 4); i++) {
+        setTimeout(function () {
+            if (document.hidden) return;
+            const x = W * (0.18 + Math.random() * 0.64);
+            aqPush({
+                k: "rocket", x: x, y: H + 12,
+                vx: (Math.random() - 0.5) * 1.1, vy: -(8 + Math.random() * 3.5),
+                g: 0.055, ty: H * (0.14 + Math.random() * 0.28),
+                r: 2.6, life: 1, decay: 0,
+                c: AQ_COLORS[(Math.random() * AQ_COLORS.length) | 0]
+            });
+        }, i * 420);
+    }
+}
+
+
+/* ---------- 3. DOM FX HELPERS ---------- */
+
+function aqEdge(kind) {
+    const el = aqBy("aqEdgeFlash");
+    if (!el || aqReduced) return;
+    el.classList.remove("aq-good", "aq-bad");
+    void el.offsetWidth;
+    el.classList.add(kind);
+    setTimeout(function () { el.classList.remove(kind); }, 700);
+}
+
+function aqFloat(x, y, text, color) {
+    if (aqReduced) return;
+    const el = document.createElement("div");
+    el.className = "aq-float";
+    el.textContent = text;
+    if (color) el.style.color = color;
+    el.style.left = Math.round(x) + "px";
+    el.style.top = Math.round(y) + "px";
+    document.body.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 1150);
+}
+
+function aqFloatFrom(el, text, color) {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    aqFloat(r.left + r.width / 2 - 22, r.top - 6, text, color);
+}
+
+function aqCountUp(el, to, dur, fmt) {
+    if (!el) return;
+    const target = Number(to) || 0;
+    const render = function (v) { el.textContent = fmt ? fmt(v) : String(v); };
+    if (aqReduced || !dur) { render(target); return; }
+    const t0 = performance.now();
+    const step = function (now) {
+        const p = Math.min(1, (now - t0) / dur);
+        render(Math.round(target * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) window.requestAnimationFrame(step);
+    };
+    window.requestAnimationFrame(step);
+}
+
+
+/* ---------- 4. HEARTS / STREAK / PROGRESS ---------- */
+
+function aqRenderHearts() {
+    const host = aqBy("livesHearts");
+    if (!host) return;
+    host.innerHTML = "";
+    for (let i = 0; i < MAX_WRONG; i++) {
+        const s = document.createElement("span");
+        s.className = "aq-heart";
+        s.textContent = "❤";
+        host.appendChild(s);
+    }
+}
+
+function aqLoseHeart() {
+    const host = aqBy("livesHearts");
+    if (!host) return;
+    const alive = aqAll(".aq-heart:not(.aq-lost)", host);
+    const last = alive[alive.length - 1];
+    if (last) {
+        last.classList.add("aq-lost");
+        aqFloatFrom(last, "💔", "#ff9aa8");
+    }
+}
+
+function aqUpdateStreak() {
+    const el = aqBy("aqStreak");
+    const tx = aqBy("aqStreakText");
+    if (!el) return;
+    if (aqStreak >= 2) {
+        if (tx) tx.textContent = aqStreak + " in a row!";
+        aqRetrigger(el, "aq-on");
+    } else {
+        el.classList.remove("aq-on");
+    }
+}
+
+function aqTintProgress() {
+    const bar = aqBy("progressBar");
+    if (!bar) return;
+    bar.classList.remove("aq-good", "aq-bad");
+    if (wrongAnswers >= 2) bar.classList.add("aq-bad");
+    else if (correctAnswers >= 3) bar.classList.add("aq-good");
+}
+
+function aqBumpScore() {
+    const el = aqBy("questionScore");
+    if (!el) return;
+    aqCountUp(el, correctAnswers, 420, function (v) { return "Score: " + v; });
+    aqRetrigger(el, "aq-bump");
+}
+
+
+/* ---------- 5. XP HUD ---------- */
+
+function aqTotalXp() {
+    let levels = 0;
+    try {
+        TOPICS.forEach(function (t) { levels += getTopicCompletedCount(t.id); });
+    } catch (e) { return 0; }
+    return levels * 25;
+}
+
+function aqUpdateHud(animate) {
+    const xp = aqTotalXp();
+    const level = Math.floor(xp / 100) + 1;
+    const fill = aqBy("aqXpFill");
+    const badge = aqBy("aqXpLevel");
+    const label = aqBy("aqXpText");
+    if (fill) fill.style.setProperty("--xp", ((xp % 100) / 100).toFixed(3));
+    if (badge) {
+        const prev = badge.textContent;
+        badge.textContent = String(level);
+        if (animate && prev !== String(level)) {
+            aqRetrigger(badge, "aq-up");
+            aqSfx("unlock");
+        }
+    }
+    aqCountUp(label, xp, animate ? 800 : 0);
+}
+
+
+/* ---------- 6. HOME SCREEN ---------- */
+
+function aqSplitTitle() {
+    const title = aqQ(".game-title");
+    if (!title || title.getAttribute("data-aq-split")) return;
+    title.setAttribute("data-aq-split", "1");
+    let i = 0;
+    const walk = function (node) {
+        Array.prototype.slice.call(node.childNodes).forEach(function (kid) {
+            if (kid.nodeType === 3) {
+                const text = kid.textContent;
+                if (!text || !text.trim()) return;
+                const frag = document.createDocumentFragment();
+                Array.prototype.forEach.call(text, function (ch) {
+                    if (ch === " ") { frag.appendChild(document.createTextNode(" ")); return; }
+                    const s = document.createElement("i");
+                    s.className = "aq-ch";
+                    s.textContent = ch;
+                    s.style.setProperty("--i", i++);
+                    frag.appendChild(s);
+                });
+                node.replaceChild(frag, kid);
+            } else if (kid.nodeType === 1) {
+                walk(kid);
+            }
+        });
+    };
+    walk(title);
+}
+
+function aqMakeParticles() {
+    const host = aqBy("aqParticles");
+    if (!host || host.childElementCount) return;
+    const n = window.innerWidth < 600 ? 12 : 20;
+    for (let i = 0; i < n; i++) {
+        const d = document.createElement("span");
+        d.className = "aq-particle";
+        d.style.left = (Math.random() * 100).toFixed(2) + "%";
+        d.style.setProperty("--s", (3 + Math.random() * 6).toFixed(1) + "px");
+        d.style.setProperty("--dur", (13 + Math.random() * 16).toFixed(1) + "s");
+        d.style.setProperty("--delay", (-Math.random() * 22).toFixed(1) + "s");
+        d.style.setProperty("--drift", (Math.random() * 130 - 65).toFixed(0) + "px");
+        host.appendChild(d);
+    }
+}
+
+function aqBindAvatarPop() {
+    ["nameInput", "ageInput"].forEach(function (id) {
+        const el = aqBy(id);
+        if (!el || el.getAttribute("data-aq-pop")) return;
+        el.setAttribute("data-aq-pop", "1");
+        let last = 0;
+        el.addEventListener("input", function () {
+            const now = Date.now();
+            if (now - last < 240) return;
+            last = now;
+            aqRetrigger(aqQ(".avatar"), "aq-pop");
+        });
+    });
+}
+
+
+/* ---------- 7. PARALLAX ---------- */
+
+let aqPx = 0, aqPy = 0, aqPTick = false;
+
+function aqParallax(cx, cy) {
+    if (aqReduced) return;
+    aqPx = (cx / window.innerWidth) * 2 - 1;
+    aqPy = (cy / window.innerHeight) * 2 - 1;
+    if (aqPTick) return;
+    aqPTick = true;
+    window.requestAnimationFrame(function () {
+        aqPTick = false;
+        const root = document.documentElement;
+        root.style.setProperty("--mx", aqPx.toFixed(3));
+        root.style.setProperty("--my", aqPy.toFixed(3));
+    });
+}
+
+
+/* ---------- 8. TOPIC CARDS ---------- */
+
+function aqTilt(card) {
+    if (aqReduced || card.getAttribute("data-aq-tilt")) return;
+    card.setAttribute("data-aq-tilt", "1");
+    const reset = function () {
+        card.classList.remove("tilting");
+        card.style.setProperty("--rx", "0deg");
+        card.style.setProperty("--ry", "0deg");
+    };
+    card.addEventListener("pointermove", function (e) {
+        if (e.pointerType === "touch") return;
+        const r = card.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        card.classList.add("tilting");
+        card.style.setProperty("--ry", (((e.clientX - r.left) / r.width - 0.5) * 11).toFixed(2) + "deg");
+        card.style.setProperty("--rx", ((0.5 - (e.clientY - r.top) / r.height) * 9).toFixed(2) + "deg");
+    });
+    card.addEventListener("pointerleave", reset);
+    card.addEventListener("pointercancel", reset);
+}
+
+function aqDecorateTopics() {
+    const grid = aqBy("topicGrid");
+    if (!grid) return;
+    const cards = aqAll(".topic-card", grid);
+    cards.forEach(function (c, i) {
+        c.style.setProperty("--aq-i", i);
+        aqTilt(c);
+    });
+}
+
+
+/* ---------- 9. ADVENTURE MAP ---------- */
+
+function aqPlaceMascot(nodes, animate) {
+    const map = aqQ(".adventure-map");
+    if (!map || !nodes.length) return;
+    let m = aqQ(".aq-mascot", map);
+    const fresh = !m;
+    if (!m) {
+        m = document.createElement("div");
+        m.className = "aq-mascot";
+        m.innerHTML = "<i>🐰</i>";
+        map.appendChild(m);
+    }
+    const target = nodes.filter(function (n) { return n.classList.contains("current"); })[0] || nodes[nodes.length - 1];
+    if (!target) return;
+    const mr = map.getBoundingClientRect();
+    const tr = target.getBoundingClientRect();
+    if (!mr.width) return;
+    if (fresh || !animate) {
+        m.style.transition = "none";
+    }
+    m.style.setProperty("--px", Math.round(tr.left - mr.left + tr.width / 2 - 15) + "px");
+    m.style.setProperty("--py", Math.round(tr.top - mr.top - 36) + "px");
+    if (fresh || !animate) {
+        void m.offsetWidth;
+        m.style.transition = "";
+    }
+}
+
+function aqDecorateMap() {
+    const path = aqBy("levelPath");
+    if (!path) return;
+    const nodes = aqAll(".level-node", path);
+    nodes.forEach(function (n, i) {
+        n.style.setProperty("--aq-i", i);
+        if (n.classList.contains("completed") && !aqQ(".aq-stars", n)) {
+            const row = document.createElement("div");
+            row.className = "aq-stars";
+            for (let k = 0; k < 3; k++) {
+                const s = document.createElement("i");
+                s.textContent = "★";
+                s.style.setProperty("--aq-i", k + i * 0.4);
+                row.appendChild(s);
+            }
+            n.appendChild(row);
+        }
+    });
+
+    let road = aqQ(".aq-road", path);
+    if (!road) {
+        road = document.createElement("div");
+        road.className = "aq-road";
+        road.innerHTML = "<i class=\"aq-road-fill\"></i>";
+        path.appendChild(road);
+    }
+    const fill = road.firstElementChild;
+    const done = nodes.filter(function (n) { return n.classList.contains("completed"); }).length;
+    if (fill) {
+        fill.style.setProperty("--p", "0");
+        window.requestAnimationFrame(function () {
+            fill.style.setProperty("--p", Math.min(1, done / TOTAL_LEVELS).toFixed(3));
+        });
+    }
+
+    const castle = aqQ(".finish-castle");
+    if (castle) castle.classList.toggle("aq-done", done >= TOTAL_LEVELS);
+
+    /* the screen entrance animation scales the map, so measure the mascot
+       target only after it has settled */
+    setTimeout(function () {
+        aqPlaceMascot(aqAll(".level-node", aqBy("levelPath") || document), true);
+    }, 520);
+}
+
+function aqMapTap(e) {
+    const map = aqQ(".adventure-map");
+    if (!map) return;
+    const locked = aqAll(".level-node.locked", map);
+    for (let i = 0; i < locked.length; i++) {
+        const r = locked[i].getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+            aqRetrigger(locked[i], "aq-wiggle");
+            aqSfx("deny");
+            aqVibe(28);
+            return;
+        }
+    }
+}
+
+
+/* ---------- 10. RESULT SCREEN ---------- */
+
+function aqStarsEarned() {
+    if (correctAnswers >= QUESTIONS_PER_LEVEL) return 3;
+    if (correctAnswers >= QUESTIONS_PER_LEVEL - 1) return 2;
+    return 1;
+}
+
+function aqCelebrate(passed) {
+    const icon = aqBy("resultIcon");
+    const starRow = aqBy("resultStars");
+
+    aqIndex(aqBy("resultButtons"), "button");
+    aqIndex(aqQ(".result-card"), ".result-card > div");
+
+    const answered = correctAnswers + wrongAnswers;
+    const acc = answered > 0 ? Math.round((correctAnswers / answered) * 100) : 0;
+    aqCountUp(aqBy("finalLevelScore"), currentLevel, 500);
+    aqCountUp(aqBy("correctCount"), correctAnswers, 700);
+    aqCountUp(aqBy("wrongCount"), wrongAnswers, 700);
+    aqCountUp(aqBy("accuracyCount"), acc, 950, function (v) { return v + "%"; });
+
+    if (icon) { icon.classList.remove("aq-win", "aq-lose"); void icon.offsetWidth; }
+
+    if (!passed) {
+        if (icon) icon.classList.add("aq-lose");
+        if (starRow) starRow.style.display = "none";
+        aqSfx("fail");
+        aqVibe([40, 60, 40]);
+        return;
+    }
+
+    if (icon) icon.classList.add("aq-win");
+    aqSfx("complete");
+    aqVibe([30, 50, 30, 50, 90]);
+    aqConfetti(window.innerWidth < 600 ? 90 : 150);
+    aqFireworks(currentLevel === TOTAL_LEVELS ? 6 : 3);
+    aqEdge("aq-good");
+
+    if (starRow) {
+        starRow.style.display = "";
+        const stars = aqAll("i", starRow);
+        const earned = aqStarsEarned();
+        stars.forEach(function (s, i) {
+            s.classList.remove("aq-lit");
+            s.style.color = "";
+            if (i < earned) {
+                setTimeout(function () {
+                    s.classList.add("aq-lit");
+                    aqSfx("star");
+                    const r = s.getBoundingClientRect();
+                    if (r.width) aqExplode(r.left + r.width / 2, r.top + r.height / 2, "#ffd166", 12);
+                }, 420 + i * 320);
+            } else {
+                s.style.color = "rgba(255,255,255,.16)";
+            }
+        });
+    }
+}
+
+
+/* ---------- 11. LEADERBOARD ---------- */
+
+function aqDecorateLeaderboard() {
+    const list = aqBy("leaderboardList");
+    if (!list) return;
+    const rows = aqAll(".leaderboard-item", list);
+    rows.forEach(function (row, i) {
+        row.style.setProperty("--aq-i", Math.min(i, 14));
+        if (i === 0) row.classList.add("aq-r1");
+        if (i === 1) row.classList.add("aq-r2");
+        if (i === 2) row.classList.add("aq-r3");
+        if (row.style.outline) {
+            row.style.outline = "";
+            row.classList.add("aq-me");
+        }
+    });
+}
+
+
+/* ---------- 12. QUESTION SCREEN ---------- */
+
+function aqOnQuestion() {
+    const card = aqQ("#quizScreen .question-card");
+    aqRetrigger(card, "aq-in");
+
+    const box = aqBy("optionsContainer");
+    if (box) {
+        const opts = aqAll(".option-button", box);
+        opts.forEach(function (b, i) {
+            b.style.setProperty("--aq-i", i);
+            b.style.setProperty("--from", (i % 2 === 0 ? -46 : 46) + "px");
+        });
+    }
+
+    const fb = aqBy("feedback");
+    if (fb) fb.classList.remove("aq-in", "correct", "wrong");
+
+    aqTintProgress();
+}
+
+
+/* ---------- 13. HOOKS (wrap pattern) ---------- */
+
+const _aqShowScreen = showScreen;
+showScreen = function (screenId) {
+    _aqShowScreen(screenId);
+    aqUpdateHud(false);
+    if (screenId === "homeScreen") { aqSplitTitle(); aqBindAvatarPop(); }
+    if (screenId !== "quizScreen") aqStreak = 0;
+};
+
+const _aqRenderTopics = renderTopics;
+renderTopics = function () {
+    _aqRenderTopics();
+    aqDecorateTopics();
+};
+
+const _aqRenderLevelMap = renderLevelMap;
+renderLevelMap = function () {
+    _aqRenderLevelMap();
+    aqDecorateMap();
+};
+
+const _aqStartLevel = startLevel;
+startLevel = function (level) {
+    aqStreak = 0;
+    aqUpdateStreak();
+    _aqStartLevel(level);
+    aqRenderHearts();
+};
+
+const _aqDisplayQuestion = displayQuestion;
+displayQuestion = function () {
+    _aqDisplayQuestion();
+    aqOnQuestion();
+};
+
+const _aqUseClue = useClue;
+useClue = function () {
+    _aqUseClue();
+    const box = aqBy("clueText");
+    if (box && box.textContent) aqRetrigger(box, "aq-in");
+    aqSfx("click");
+};
+
+const _aqSelectAnswer = selectAnswer;
+selectAnswer = function (answer, btn) {
+    const before = correctAnswers;
+    const beforeWrong = wrongAnswers;
+    const wasAnswered = answeredCurrentQuestion;
+
+    _aqSelectAnswer(answer, btn);
+
+    if (wasAnswered) return;
+    if (correctAnswers === before && wrongAnswers === beforeWrong) return;
+
+    const isCorrect = correctAnswers > before;
+
+    if (isCorrect) {
+        aqStreak++;
+        aqSfx("correct");
+        aqVibe(22);
+        aqEdge("aq-good");
+        aqBurstAt(btn, aqStreak >= 3 ? "#ff9f43" : "#4ee69a", aqStreak >= 3 ? 34 : 22);
+        aqFloatFrom(btn, "+10", "#7bffc0");
+        aqBumpScore();
+        if (aqStreak === 3) aqFloat(window.innerWidth / 2 - 60, window.innerHeight / 2 - 40, "🔥 STREAK!", "#ff9f43");
+    } else {
+        aqStreak = 0;
+        aqSfx("wrong");
+        aqVibe([55, 45, 55]);
+        aqEdge("aq-bad");
+        if (btn) aqRetrigger(btn, "aq-shake-it");
+        const container = aqQ(".quiz-container");
+        aqRetrigger(container, "aq-shake-it");
+        aqLoseHeart();
+    }
+
+    aqUpdateStreak();
+    aqTintProgress();
+};
+
+const _aqShowResult = showResult;
+showResult = function (passed) {
+    _aqShowResult(passed);
+    aqCelebrate(passed);
+};
+
+const _aqFinishLevel = finishLevel;
+finishLevel = function (passed) {
+    const topicDoneBefore = currentTopic ? getTopicCompletedCount(currentTopic) : 0;
+    _aqFinishLevel(passed);
+    aqUpdateHud(true);
+    if (passed) {
+        const after = currentTopic ? getTopicCompletedCount(currentTopic) : 0;
+        if (after > topicDoneBefore) aqSfx("unlock");
+        if (after >= TOTAL_LEVELS) {
+            aqConfetti(window.innerWidth < 600 ? 110 : 180);
+            aqFireworks(7);
+        }
+    }
+};
+
+const _aqLoadLeaderboard = loadLeaderboard;
+loadLeaderboard = async function () {
+    const out = await _aqLoadLeaderboard.apply(this, arguments);
+    aqDecorateLeaderboard();
+    return out;
+};
+
+
+/* ---------- 14. GLOBAL LISTENERS + BOOT ---------- */
+
+document.addEventListener("click", function (e) {
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const hit = t.closest("button, .topic-card, .level-node");
+    if (!hit || hit.disabled) return;
+    if (hit.classList.contains("option-button")) return;
+    if (hit.id === "aqSoundBtn") return;
+    aqSfx("click");
+}, true);
+
+document.addEventListener("pointerdown", function (e) {
+    const map = aqQ(".adventure-map");
+    if (map && map.contains(e.target)) aqMapTap(e);
+}, { passive: true });
+
+window.addEventListener("pointermove", function (e) {
+    aqParallax(e.clientX, e.clientY);
+}, { passive: true });
+
+window.addEventListener("touchmove", function (e) {
+    if (e.touches && e.touches[0]) aqParallax(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+
+window.addEventListener("resize", function () {
+    aqResizeCanvas();
+    const path = aqBy("levelPath");
+    if (path && path.childElementCount) aqPlaceMascot(aqAll(".level-node", path), false);
+});
+
+document.addEventListener("visibilitychange", function () {
+    document.body.classList.toggle("fx-paused", document.hidden);
+    if (document.hidden) aqStopLoop();
+});
+
+if (AQ_MOTION_MQ) {
+    const onChange = function (e) {
+        aqReduced = !!e.matches;
+        document.body.classList.toggle("aq-reduced", aqReduced);
+        if (aqReduced) aqStopLoop();
+    };
+    if (AQ_MOTION_MQ.addEventListener) AQ_MOTION_MQ.addEventListener("change", onChange);
+    else if (AQ_MOTION_MQ.addListener) AQ_MOTION_MQ.addListener(onChange);
+}
+
+function aqInitFx() {
+    document.body.classList.add("aq-hud-on");
+    document.body.classList.toggle("aq-reduced", aqReduced);
+    aqResizeCanvas();
+    aqMakeParticles();
+    aqSplitTitle();
+    aqBindAvatarPop();
+    aqSyncSoundBtn();
+    aqRenderHearts();
+    aqUpdateHud(false);
+
+    const btn = aqBy("aqSoundBtn");
+    if (btn) {
+        btn.addEventListener("click", function () {
+            aqMuted = !aqMuted;
+            try { localStorage.setItem("AQ_muted", aqMuted ? "1" : "0"); } catch (e) { /* private mode */ }
+            aqSyncSoundBtn();
+            if (!aqMuted) aqSfx("click");
+        });
+    }
+}
+
+aqInitFx();
+document.addEventListener("DOMContentLoaded", function () {
+    aqUpdateHud(false);
+    aqDecorateTopics();
+});
+
+window.AQfx = {
+    confetti: aqConfetti,
+    fireworks: aqFireworks,
+    burst: aqExplode,
+    sfx: aqSfx,
+    updateHud: aqUpdateHud,
+    set muted(v) { aqMuted = !!v; aqSyncSoundBtn(); },
+    get muted() { return aqMuted; }
 };
